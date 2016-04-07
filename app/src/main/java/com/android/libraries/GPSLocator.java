@@ -25,6 +25,8 @@ public class GPSLocator implements LocationListener {
     TextureFromCameraActivity activity;
     private SimParameters simulation;
 
+    //commentcommit
+
     // Flag for GPS status
     boolean isGPSEnabled = false;
 
