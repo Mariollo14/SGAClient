@@ -5,8 +5,12 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.opengl.GLSurfaceView;
+
+import com.threed.jpct.Matrix;
 
 import java.text.DecimalFormat;
+import java.util.Date;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -53,6 +57,7 @@ public class SensorFusion implements SensorEventListener {
         gyroOrientation[0] = 0.0f;
         gyroOrientation[1] = 0.0f;
         gyroOrientation[2] = 0.0f;
+
 
         // initialise gyroMatrix with identity matrix
         gyroMatrix[0] = 1.0f; gyroMatrix[1] = 0.0f; gyroMatrix[2] = 0.0f;
@@ -123,14 +128,12 @@ public class SensorFusion implements SensorEventListener {
                 break;
         }
 
-        activity.sensorChanged(event);
     }
 
 
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
 
-        activity.accuracyChanged(sensor, accuracy);
     }
 
 
@@ -348,9 +351,19 @@ public class SensorFusion implements SensorEventListener {
     }
     */
 
+    public static void copyMatrix(float[] src, com.threed.jpct.Matrix dest) {
+        dest.setRow(0, src[0], src[1], src[2], 0);
+        dest.setRow(1, src[3], src[4], src[5], 0);
+        dest.setRow(2, src[6], src[7], src[8], 0);
+        dest.setRow(3, 0f, 0f, 0f, 1f);
+    }
+
     class calculateFusedOrientationTask extends TimerTask {
 
+
         private DecimalFormat dformat = new DecimalFormat("#.##");
+
+        private float lastx=0,lasty=0,lastz=0;
 
         public void run() {
             float oneMinusCoeff = 1.0f - FILTER_COEFFICIENT;
@@ -406,18 +419,39 @@ public class SensorFusion implements SensorEventListener {
             gyroMatrix = getRotationMatrixFromOrientation(fusedOrientation);
             System.arraycopy(fusedOrientation, 0, gyroOrientation, 0, 3);
 
-
-            //mAzimuthView
-            double f0f = fusedOrientation[0] * 180 / Math.PI;
+            //mAzimuthView heading -> Z JPCT
+            Double f0f = fusedOrientation[0] * 180 / Math.PI;
             String f0 = dformat.format(f0f);
-            //mPitchView
-            double f1f = fusedOrientation[1] * 180 / Math.PI;
+            //mPitchView -> x JPCT
+            Double f1f = fusedOrientation[1] * 180 / Math.PI;
             String f1 = dformat.format(f1f);
-            //mRollView
-            double f2f = fusedOrientation[2] * 180 / Math.PI;
+            //mRollView -> y JPCT
+            Double f2f = fusedOrientation[2] * 180 / Math.PI;
             String f2 = dformat.format(f2f);
             // update sensor output in GUI
             //mHandler.post(updateOreintationDisplayTask);
+
+            /*
+            int SENSIBILITY = 0;
+            if( lastx-f0f.floatValue()>SENSIBILITY || lastx-f0f.floatValue()<SENSIBILITY ||
+                lasty-f1f.floatValue()>SENSIBILITY || lasty-f1f.floatValue()<SENSIBILITY ||
+                lastz-f2f.floatValue()>SENSIBILITY || lastz-f2f.floatValue()<SENSIBILITY
+            )
+            activity.onNewOrientationAnglesComputed(f0f.floatValue(),f1f.floatValue(),f2f.floatValue());
+
+            lastx=f0f.floatValue();
+            lasty=f1f.floatValue();
+            lastz=f2f.floatValue();
+
+            */
+            int inclination = (int) Math.round(Math.toDegrees(Math.acos(rotationMatrix[8])));
+            activity.onNewOrientationAnglesComputed(f2f.floatValue(),f1f.floatValue(),f0f.floatValue(),inclination>90);
+
+
+            //activity.onNewOrientationMatrixComputed(gyroMatrix);
+            //
+            //activity.onNewOrientationAnglesComputed(f0f.floatValue(),f1f.floatValue(),f2f.floatValue());
+
             activity.showOrientationFusedAngle(f0f,f1f,f2f);
         }
     }

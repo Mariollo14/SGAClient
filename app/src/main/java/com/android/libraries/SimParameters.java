@@ -3,16 +3,29 @@ package com.android.libraries;
 import android.location.Location;
 import android.util.Log;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Created by Mario Salierno on 14/03/2016.
  */
 public class SimParameters {
 
-    private Location targetLocation;
+    private Map<String,Location> targetLocations = new HashMap<String,Location>();
 
     public SimParameters(){
 
         //test
+        //this.addNewTarget("asobrero",45.0808178,7.6655203,0);
+        //this.addNewTarget("csoregina",45.082234,7.666427,0);
+        //this.addNewTarget("pirandello",41.128718,14.794887,174);
+        this.addNewTarget("rosina",41.1254395,14.7934637,177);
+        this.addNewTarget("flora",41.1287446,14.7892335,172);
+        //this.addNewTarget("duomo",41.1314897,14.7742939,136);
+        //this.addNewTarget("traiano",41.1325468,14.7791313,141);
+        this.addNewTarget("pirandello10",41.1292366,14.7941399, 173);
+        /*
         Location asobrero = new Location("asobrero");
         asobrero.setLatitude(45.0808178);
         asobrero.setLongitude(7.6655203);
@@ -20,15 +33,7 @@ public class SimParameters {
         Location csoregina = new Location("csoregina");
         csoregina.setLatitude(45.082234);
         csoregina.setLongitude(7.666427);
-
-
-        //porta susa
-        //targetLocation = new Location("target Point");
-
-        //targetLocation.setLatitude(45.08008);
-        //targetLocation.setLongitude(7.67046);
-
-        targetLocation=csoregina;
+        */
 
         //Location
         //distanceTo will give you the distance in meters between the two given location ej target.distanceTo(destination).
@@ -52,14 +57,22 @@ public class SimParameters {
 
     }
 
-    public Location getTargetLocation() {
+    public void addNewTarget(String id, double lat, double lon, double alt){
+        Location loc = new Location(id);
+        loc.setLatitude(lat);
+        loc.setLongitude(lon);
+        loc.setAltitude(alt);
+        targetLocations.put(id,loc);
+    }
 
-        return targetLocation;
+    public Map<String,Location> getTargetLocation() {
+
+        return targetLocations;
 
     }
 
     public void testDistance(Location yourLoc){
-
+        /*
         String dmia,dmiahav, dTO;
 
         dmia = "dmia: " + LocationUtilities.getEquirectangularApproximationDistance(yourLoc.getLatitude(),yourLoc.getLongitude(),
@@ -73,6 +86,7 @@ public class SimParameters {
         dTO = "dTO: " +yourLoc.distanceTo(targetLocation);
 
         Log.d("DISTANCE!",dmia + "\n "+ dTO+"\n "+ dmiahav);
+        */
     }
 
 

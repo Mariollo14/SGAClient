@@ -38,20 +38,28 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.net.Uri;
 import android.opengl.GLES20;
+import android.opengl.GLSurfaceView;
 import android.opengl.Matrix;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
+import android.provider.Settings;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
+import android.view.WindowManager;
+import android.widget.AbsListView;
+import android.widget.RelativeLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import android.view.ViewGroup.LayoutParams;
 
 import com.android.libraries.gles.Drawable2d;
 import com.android.libraries.gles.EglCore;
@@ -59,9 +67,7 @@ import com.android.libraries.gles.GlUtil;
 import com.android.libraries.gles.Sprite2d;
 import com.android.libraries.gles.Texture2dProgram;
 import com.android.libraries.gles.WindowSurface;
-import com.google.android.gms.appindexing.Action;
-import com.google.android.gms.appindexing.AppIndex;
-import com.google.android.gms.common.api.GoogleApiClient;
+import com.threed.jpct.RGBColor;
 
 import java.io.IOException;
 import java.lang.ref.WeakReference;
@@ -74,6 +80,11 @@ import android.hardware.Sensor;
 import android.hardware.SensorManager;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
+
+import javax.microedition.khronos.egl.EGL10;
+import javax.microedition.khronos.egl.EGLConfig;
+import javax.microedition.khronos.egl.EGLDisplay;
+import javax.microedition.khronos.opengles.GL10;
 
 /**
  * Direct the Camera preview to a GLES texture and manipulate it.
@@ -109,7 +120,8 @@ import android.hardware.SensorEventListener;
  * </ol>
  */
 public class TextureFromCameraActivity extends Activity
-        implements SurfaceHolder.Callback, LocationListener/*,SeekBar.OnSeekBarChangeListener*/ {
+        implements SurfaceHolder.Callback/*,SeekBar.OnSeekBarChangeListener*/
+        {
     public static final String TAG = "TextureCameraActivity";/////MainActivity.TAG;
 
     private static final int DEFAULT_ZOOM_PERCENT = 0;      // 0-100
@@ -139,10 +151,21 @@ public class TextureFromCameraActivity extends Activity
     // to null when surfaceDestroyed() is called.
     private static SurfaceHolder sSurfaceHolder;
 
+    private SurfaceView cameraView = null;
+    //private SurfaceView svOnTop = null;
+    private TextView tmptv = null;
+    private GLSurfaceView mGLView;
+    private boolean gl2 = true;
+    private JPCTWorldManager jpctWorldManager = null;
+    private SimParameters simulation = null;
+
+
+
+
     // Thread that handles rendering and controls the camera.  Started in onResume(),
     // stopped in onPause().
     private RenderThread mRenderThread;
-    private TopTextureViewRenderThread topRenderThread;
+
 
     // Receives messages from renderer thread.
     private MainHandler mHandler;
@@ -164,37 +187,99 @@ public class TextureFromCameraActivity extends Activity
     private int mRotateDeg;
 
 
-
-    private double xG, yG, zG;
-    //private Sensor accSensor, gyroscopeSensor;
-    //private SensorManager SM;
-
+    private Double xG, yG, zG;
+    private Double vCamRoll,vCamPitch,vCamHead;
     private GPSLocator myLocator;
     private SensorFusion mySensorFusion;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_texture_from_camera);
 
-        mHandler = new MainHandler(this);
-
-        SurfaceView sv = (SurfaceView) findViewById(R.id.cameraOnTexture_surfaceView);
-        SurfaceHolder sh = sv.getHolder();
-        sh.addCallback(this);
-
-        SurfaceView svOnTop = (SurfaceView) findViewById(R.id.surfaceViewOnTopOfCamera);
-        svOnTop.setZOrderOnTop(true);    // necessary
-        SurfaceHolder sfOnTopHolder = svOnTop.getHolder();
-        sfOnTopHolder.setFormat(PixelFormat.TRANSPARENT);
-
-        //sensors
-        mySensorFusion = new SensorFusion(this);
+        this.simulation = new SimParameters();
 
         /*
             GPS Sensor
          */
-        myLocator = new GPSLocator(this);
+        myLocator = new GPSLocator(this,simulation);
+
+
+        //sensors
+        mySensorFusion = new SensorFusion(this);
+
+        jpctWorldManager = new JPCTWorldManager(this,simulation,myLocator);
+
+
+
+
+        super.onCreate(savedInstanceState);
+        getWindow().setFormat(PixelFormat.TRANSLUCENT);
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                WindowManager.LayoutParams.FLAG_FULLSCREEN);
+
+        //setContentView(R.layout.activity_texture_from_camera);
+
+        mHandler = new MainHandler(this);
+
+        cameraView = new SurfaceView(this);
+        SurfaceHolder sh = cameraView.getHolder();
+        sh.addCallback(this);
+        sh.setFormat(PixelFormat.TRANSLUCENT);
+
+        /*
+        svOnTop = new SurfaceView(this);
+        SurfaceHolder sfOnTopHolder = svOnTop.getHolder();
+        sfOnTopHolder.setFormat(PixelFormat.TRANSLUCENT);
+        */
+
+        tmptv = new TextView(this);
+        tmptv.setBackgroundColor(PixelFormat.OPAQUE);
+
+        mGLView = new GLSurfaceView(this);
+        SurfaceHolder GLSsfOnTopHolder = mGLView.getHolder();
+        GLSsfOnTopHolder.setFormat(PixelFormat.TRANSLUCENT);
+
+        if (gl2) {
+            mGLView.setEGLContextClientVersion(2);
+        } else {
+             /*
+                The creation of a dedicated EGLConfigChooser:
+                This serves one single purpose, which is to make 3D acceleration on old phones.
+                Almost no device requires this nowadays but it doesn't hurt either.
+            */
+            mGLView.setEGLConfigChooser(new GLSurfaceView.EGLConfigChooser() {
+                public EGLConfig chooseConfig(EGL10 egl, EGLDisplay display) {
+                    // Ensure that we get a 16bit framebuffer. Otherwise, we'll
+                    // fall back to Pixelflinger on some device (read: Samsung
+                    // I7500). Current devices usually don't need this, but it
+                    // doesn't hurt either.
+                    int[] attributes = new int[]{EGL10.EGL_DEPTH_SIZE, 16, EGL10.EGL_NONE};
+                    EGLConfig[] configs = new EGLConfig[1];
+                    int[] result = new int[1];
+                    egl.eglChooseConfig(display, attributes, configs, 1, result);
+                    return configs[0];
+                }
+            });
+
+
+        }
+
+        // Translucent window 8888 pixel format and depth buffer
+        mGLView.setEGLConfigChooser(8, 8, 8, 8, 16, 0);
+        mGLView.getHolder().setFormat(PixelFormat.TRANSLUCENT);
+
+        mGLView.setRenderer(jpctWorldManager);
+
+        mGLView.setRenderMode(GLSurfaceView.RENDERMODE_CONTINUOUSLY);
+        mGLView.setZOrderOnTop(true);
+
+        setContentView(R.layout.activity_texture_from_camera);
+        // get your outer relative layout
+        RelativeLayout rl = (RelativeLayout) this.findViewById(R.id.relLay);
+        // inflate content layout and add it to the relative layout as second child
+        // add as second child, therefore pass index 1 (0,1,...)
+        rl.addView(cameraView);
+        rl.addView(mGLView);
+        rl.addView(tmptv);
 
         /*
         mario
@@ -209,8 +294,10 @@ public class TextureFromCameraActivity extends Activity
         mRotateBar.setOnSeekBarChangeListener(this);
         updateControls();
         */
-    }
 
+
+
+    }
 
 
     @Override
@@ -228,12 +315,12 @@ public class TextureFromCameraActivity extends Activity
     }
 
 
-
     @Override
     protected void onResume() {
 
-        Log.d(TAG, "onResume BEGIN");
         super.onResume();
+        mGLView.onResume();
+        myLocator.requestLocationUpdate();
         mySensorFusion.initListeners();
         //try catch mario
         try {
@@ -245,24 +332,26 @@ public class TextureFromCameraActivity extends Activity
             RenderHandler rh = mRenderThread.getHandler();
 
 
-            SurfaceView svOnTop = (SurfaceView) findViewById(R.id.surfaceViewOnTopOfCamera);
+            /*
             topRenderThread = new TopTextureViewRenderThread(mHandler, svOnTop, this);
             topRenderThread.setName("TopSurfView Render");
             topRenderThread.start();
             topRenderThread.waitUntilReady();
-        /*
-        mario
-        rh.sendZoomValue(mZoomBar.getProgress());
-        rh.sendSizeValue(mSizeBar.getProgress());
-        rh.sendRotateValue(mRotateBar.getProgress());
-        */
+            */
+
+            /*
+            mario
+            rh.sendZoomValue(mZoomBar.getProgress());
+            rh.sendSizeValue(mSizeBar.getProgress());
+            rh.sendRotateValue(mRotateBar.getProgress());
+            */
+
             if (sSurfaceHolder != null) {
                 Log.d(TAG, "Sending previous surface");
                 rh.sendSurfaceAvailable(sSurfaceHolder, false);
             } else {
                 Log.d(TAG, "No previous surface");
             }
-            Log.d(TAG, "onResume END");
 
         } catch (Exception e) {
             // Show toast to the user
@@ -274,14 +363,10 @@ public class TextureFromCameraActivity extends Activity
     @Override
     protected void onPause() {
         Log.d(TAG, "onPause BEGIN");
+        mGLView.onPause();
+        myLocator.stopUsingGPS();
         super.onPause();
 
-        /*
-        // Register sensor Listener
-        SM.unregisterListener(this, accSensor);
-        */
-        // Register sensor Listener
-        //SM.unregisterListener(this, gyroscopeSensor);
         mySensorFusion.unregisterListeners();
 
         if (mRenderThread != null) {
@@ -296,6 +381,7 @@ public class TextureFromCameraActivity extends Activity
             mRenderThread = null;
         }
 
+        /*
         if (topRenderThread != null) {
             TopTextureViewRenderHandler topTVHandler = topRenderThread.getHandler();
             topTVHandler.sendShutdown();
@@ -307,7 +393,7 @@ public class TextureFromCameraActivity extends Activity
             }
             topRenderThread = null;
         }
-        Log.d(TAG, "onPause END");
+        */
     }
 
     @Override
@@ -322,8 +408,7 @@ public class TextureFromCameraActivity extends Activity
                     // permission was granted, yay! Do the
                     // contacts-related task you need to do.
 
-                }
-                else {
+                } else {
 
                     // permission denied, boo! Disable the
                     // functionality that depends on this permission.
@@ -340,8 +425,7 @@ public class TextureFromCameraActivity extends Activity
                     // permission was granted, yay! Do the
                     // contacts-related task you need to do.
 
-                }
-                else {
+                } else {
 
                     // permission denied, boo! Disable the
                     // functionality that depends on this permission.
@@ -454,19 +538,34 @@ public class TextureFromCameraActivity extends Activity
      */
     public boolean onTouchEvent(MotionEvent e) {
 
-
-        //this.topRenderThread.getHandler().sendTargetFramedByCamera((int)e.getX(),(int)e.getY());
         /*
-        mRenderThread.getHandler().sendShutdown();
-        try {
-            mRenderThread.join();
-        } catch (InterruptedException e1) {
-            e1.printStackTrace();
+        if (e.getAction() == MotionEvent.ACTION_DOWN) {
+            xpos = e.getX();
+            ypos = e.getY();
+            return true;
         }
-        Intent intent = new Intent(this,SensorManagmentActivity.class);
-        this.startActivity(intent);
-        */
 
+        if (e.getAction() == MotionEvent.ACTION_UP) {
+            xpos = -1;
+            ypos = -1;
+            jpctWorldManager.touchTurn = 0;
+            jpctWorldManager.touchTurnUp = 0;
+            return true;
+        }
+
+        if (e.getAction() == MotionEvent.ACTION_MOVE) {
+            float xd = e.getX() - xpos;
+            float yd = e.getY() - ypos;
+
+            xpos = e.getX();
+            ypos = e.getY();
+
+            jpctWorldManager.touchTurn = xd / -100f;
+            jpctWorldManager.touchTurnUp = yd / -100f;
+            return true;
+        }
+        */
+        return super.onTouchEvent(e);
 
 
         /*
@@ -490,41 +589,53 @@ public class TextureFromCameraActivity extends Activity
             default:
                 break;
         }
+        return true;
         */
 
-        return true;
+
     }
 
+
+    //called by SensorFusion
+    public void onNewOrientationAnglesComputed(float roll,float pitch,float head, final boolean facedown){
+
+        final float rollA=roll,pitchA=pitch,headA=head;
+
+
+        mGLView.queueEvent(new Runnable() {
+            @Override
+            public void run() {
+                jpctWorldManager.setRPHCam(rollA, pitchA, headA, facedown);
+            }
+        });
+
+    }
+
+    public void onNewOrientationMatrixComputed(final float[] mResult) {
+
+        mGLView.queueEvent(new Runnable() {
+            @Override
+            public void run() {
+                jpctWorldManager.remapCoors(mResult);
+            }
+        });
+
+    }
 
 
     public void showOrientationFusedAngle(double f0, double f1, double f2) {
 
-        /*
-        if (topRenderThread != null) {
-            if (topRenderThread.getHandler() != null) {
-
-                this.topRenderThread.getHandler().sendTargetFramedByCamera(f0,f1,f2);
-            }
-        }*/
-        this.mHandler.sendTempMessageParams(f0,f1,f2);
+        this.mHandler.sendTempMessageParams(f0, f1, f2);
 
     }
 
-    public void sensorChanged(SensorEvent event) {
-        /*
-        if (topRenderThread != null) {
-            if (topRenderThread.getHandler() != null) {
+    public void showOrientationVirtualCameraAngle(float roll,float pitch,float head) {
 
-                this.topRenderThread.getHandler().sendTargetFramedByCamera(event.values[0], event.values[1], event.values[2]);
-            }
-        }
-        */
-    }
-
-
-    public void accuracyChanged(Sensor sensor, int accuracy) {
+                this.mHandler.sendVCamOrientation(roll,pitch,head);
 
     }
+
+
 
     /**
      * Updates the current state of the controls.
@@ -536,17 +647,12 @@ public class TextureFromCameraActivity extends Activity
 
         //TextView tv = (TextView) findViewById(R.id.tfcCameraParams_text);
         //tv.setText(str);
-
-
-
-        TextView tmptv = (TextView) findViewById(R.id.tempTV);
-        String coordinates = "x:" + xG + "\n y:" + yG + "\n z:" + zG;
-        tmptv.setText(coordinates);
-
-
-
-
-        /*
+        if(xG!=null) {
+            String coordinates = "H:" + xG.floatValue() + "\n P:" + yG.floatValue() + "\n R:" + zG.floatValue();
+                    //+ "VR:" + vCamRoll.floatValue() + " VP:" + vCamPitch.floatValue() + " VH:" + vCamHead.floatValue();
+            tmptv.setText(coordinates);
+        }
+       /*
         str = getString(R.string.tfcRectSize, mRectWidth, mRectHeight);
         tv = (TextView) findViewById(R.id.tfcRectSize_text);
         tv.setText(str);
@@ -557,57 +663,6 @@ public class TextureFromCameraActivity extends Activity
         */
     }
 
-
-    /*
-        GPS LocationListener OVERRIDE METHODS
-     */
-    @Override
-    public void onLocationChanged(Location loc) {
-        //editLocation.setText("");
-        //pb.setVisibility(View.INVISIBLE);
-        Toast.makeText(
-                getBaseContext(),
-                "Location changed: Lat: " + loc.getLatitude() + " Lng: "
-                        + loc.getLongitude(), Toast.LENGTH_SHORT).show();
-        String longitude = "Longitude: " + loc.getLongitude();
-        Log.v(TAG, longitude);
-        String latitude = "Latitude: " + loc.getLatitude();
-        Log.v(TAG, latitude);
-
-        /*------- To get city name from coordinates -------- */
-        String cityName = null;
-        Geocoder gcd = new Geocoder(getBaseContext(), Locale.getDefault());
-        List<Address> addresses;
-        try {
-            addresses = gcd.getFromLocation(loc.getLatitude(),
-                    loc.getLongitude(), 1);
-            if (addresses.size() > 0) {
-                System.out.println(addresses.get(0).getLocality());
-                cityName = addresses.get(0).getLocality();
-            }
-        }
-        catch (IOException e) {
-            e.printStackTrace();
-        }
-        String s = longitude + "\n" + latitude + "\n\nMy Current City is: "
-                + cityName;
-        //editLocation.setText(s);
-    }
-
-    @Override
-    public void onStatusChanged(String provider, int status, Bundle extras) {
-
-    }
-
-    @Override
-    public void onProviderEnabled(String provider) {
-
-    }
-
-    @Override
-    public void onProviderDisabled(String provider) {
-
-    }
 
     /**
      * Custom message handler for main UI thread.
@@ -622,6 +677,7 @@ public class TextureFromCameraActivity extends Activity
         private static final int MSG_SEND_ZOOM_AREA = 3;
         private static final int MSG_SEND_ROTATE_DEG = 4;
         private static final int MSG_SET_TEMP_TV = 5;
+        private static final int MSG_SET_VCAM = 6;
 
 
         private WeakReference<TextureFromCameraActivity> mWeakActivity;
@@ -631,7 +687,11 @@ public class TextureFromCameraActivity extends Activity
         }
 
         public void sendTempMessageParams(double f0, double f1, double f2) {
-            sendMessage(obtainMessage(MSG_SET_TEMP_TV, 0, 0, new Coordinates(f0,f1,f2)));
+            sendMessage(obtainMessage(MSG_SET_TEMP_TV, 0, 0, new Coordinates(f0, f1, f2)));
+        }
+
+        public void sendVCamOrientation(float roll,float pitch,float head){
+            sendMessage(obtainMessage(MSG_SET_VCAM, 0, 0, new Coordinates(roll,pitch,head)));
         }
 
         /**
@@ -718,6 +778,14 @@ public class TextureFromCameraActivity extends Activity
                     activity.xG = coors.getX();
                     activity.yG = coors.getY();
                     activity.zG = coors.getZ();
+                    activity.updateControls();
+                    break;
+                }
+                case MSG_SET_VCAM:{
+                    Coordinates coors = (Coordinates) msg.obj;
+                    activity.vCamRoll = coors.getX();
+                    activity.vCamPitch = coors.getY();
+                    activity.vCamHead = coors.getZ();
                     activity.updateControls();
                     break;
                 }
@@ -963,7 +1031,7 @@ public class TextureFromCameraActivity extends Activity
 
             float zoomFactor = 1.0f - (mZoomPercent / 100.0f);
             //mario rotation changed
-            int rotAngle = 270;//Math.round(360 * (mRotatePercent / 100.0f));
+            int rotAngle =-90;//Math.round(360 * (mRotatePercent / 100.0f));
 
             mRect.setScale(newWidth, newHeight);
             mRect.setPosition(mPosX, mPosY);
@@ -1278,629 +1346,13 @@ public class TextureFromCameraActivity extends Activity
     }
 
 
-    /**
-     * Thread that handles rendering on surfaceview on top of the camera.
-     */
-    private static class TopTextureViewRenderThread extends Thread
-            /* implements SurfaceTexture.OnFrameAvailableListener */ {
-
-        // Object must be created on render thread to get correct Looper, but is used from
-        // UI thread, so we need to declare it volatile to ensure the UI thread sees a fully
-        // constructed object.
-        private volatile TopTextureViewRenderHandler mTopTVHandler;
-
-        // Used to wait for the thread to start.
-        private Object mStartLock = new Object();
-        private boolean mReady = false;
-
-        private MainHandler mMainHandler;
-        private Activity activityContext;
-
-        /*
-        private Camera mCamera;
-        private int mCameraPreviewWidth, mCameraPreviewHeight;
-
-        private EglCore mEglCore;
-        private WindowSurface mWindowSurface;
-
-        private int mWindowSurfaceWidth;
-        private int mWindowSurfaceHeight;
-
-
-        // Receives the output from the camera preview.
-        private SurfaceTexture mCameraTexture;
-        */
-
-        // Orthographic projection matrix.
-        private float[] mDisplayProjectionMatrix = new float[16];
-
-        /*
-        private Texture2dProgram mTexProgram;
-        private final ScaledDrawable2d mRectDrawable =
-                new ScaledDrawable2d(Drawable2d.Prefab.RECTANGLE);
-        private final Sprite2d mRect = new Sprite2d(mRectDrawable);
-
-        private int mZoomPercent = DEFAULT_ZOOM_PERCENT;
-        private int mSizePercent = DEFAULT_SIZE_PERCENT;
-        private int mRotatePercent = DEFAULT_ROTATE_PERCENT;
-        private float mPosX, mPosY;
-        */
-
-
-        // mario
-        private SurfaceView sfvOnTop;
-        //SurfaceView svOnTop = (SurfaceView)findViewById(R.id.surfaceViewOnTopOfCamera);
-
-        /**
-         * Constructor.  Pass in the MainHandler, which allows us to send stuff back to the
-         * Activity.
-         */
-        public TopTextureViewRenderThread(MainHandler handler, SurfaceView sfv, Activity context) {
-            mMainHandler = handler;
-            this.sfvOnTop = sfv;
-            this.activityContext = context;
-        }
-
-        /**
-         * Thread entry point.
-         */
-        @Override
-        public void run() {
-            Looper.prepare();
-
-            // We need to create the Handler before reporting ready.
-            mTopTVHandler = new TopTextureViewRenderHandler(this);
-            synchronized (mStartLock) {
-                mReady = true;
-                mStartLock.notify();    // signal waitUntilReady()
-            }
-
-
-            /*
-            // Prepare EGL and open the camera before we start handling messages.
-            mEglCore = new EglCore(null, 0);
-            openCamera(REQ_CAMERA_WIDTH, REQ_CAMERA_HEIGHT, REQ_CAMERA_FPS);
-            */
-
-            Looper.loop();
-
-            Log.d(TAG, "looper quit");
-            /*
-            releaseCamera();
-            releaseGl();
-            mEglCore.release();
-            */
-
-            synchronized (mStartLock) {
-                mReady = false;
-            }
-        }
-
-        /**
-         * Waits until the render thread is ready to receive messages.
-         * <p/>
-         * Call from the UI thread.
-         */
-        public void waitUntilReady() {
-            synchronized (mStartLock) {
-                while (!mReady) {
-                    try {
-                        mStartLock.wait();
-                    } catch (InterruptedException ie) { /* not expected */ }
-                }
-            }
-        }
-
-        /**
-         * Shuts everything down.
-         */
-        private void shutdown() {
-            Log.d(TAG, "shutdown");
-            Looper.myLooper().quit();
-        }
-
-        /**
-         * Returns the render thread's Handler.  This may be called from any thread.
-         */
-        public TopTextureViewRenderHandler getHandler() {
-            return mTopTVHandler;
-        }
-
-
-        /**
-         * Handles the surface-created callback from SurfaceView.  Prepares GLES and the Surface.
-         */
-        /*
-        private void surfaceAvailable(SurfaceHolder holder, boolean newSurface) {
-            Surface surface = holder.getSurface();
-            mWindowSurface = new WindowSurface(mEglCore, surface, false);
-            mWindowSurface.makeCurrent();
-
-            // Create and configure the SurfaceTexture, which will receive frames from the
-            // camera.  We set the textured rect's program to render from it.
-            mTexProgram = new Texture2dProgram(Texture2dProgram.ProgramType.TEXTURE_EXT);
-            int textureId = mTexProgram.createTextureObject();
-            mCameraTexture = new SurfaceTexture(textureId);
-            mRect.setTexture(textureId);
-
-            if (!newSurface) {
-                // This Surface was established on a previous run, so no surfaceChanged()
-                // message is forthcoming.  Finish the surface setup now.
-                //
-                // We could also just call this unconditionally, and perhaps do an unnecessary
-                // bit of reallocating if a surface-changed message arrives.
-                mWindowSurfaceWidth = mWindowSurface.getWidth();
-                mWindowSurfaceHeight = mWindowSurface.getHeight();
-                finishSurfaceSetup();
-            }
-
-            mCameraTexture.setOnFrameAvailableListener(this);
-        }
-
-
-        /**
-         * Releases most of the GL resources we currently hold (anything allocated by
-         * surfaceAvailable()).
-         * <p>
-         * Does not release EglCore.
-         */
-        /*
-        private void releaseGl() {
-            GlUtil.checkGlError("releaseGl start");
-
-            if (mWindowSurface != null) {
-                mWindowSurface.release();
-                mWindowSurface = null;
-            }
-            if (mTexProgram != null) {
-                mTexProgram.release();
-                mTexProgram = null;
-            }
-            GlUtil.checkGlError("releaseGl done");
-
-            mEglCore.makeNothingCurrent();
-        }
-        */
-
-        /**
-         * Handles the surfaceChanged message.
-         * <p>
-         * We always receive surfaceChanged() after surfaceCreated(), but surfaceAvailable()
-         * could also be called with a Surface created on a previous run.  So this may not
-         * be called.
-         */
-        /*
-        private void surfaceChanged(int width, int height) {
-            Log.d(TAG, "RenderThread surfaceChanged " + width + "x" + height);
-
-            mWindowSurfaceWidth = width;
-            mWindowSurfaceHeight = height;
-            finishSurfaceSetup();
-        }
-        */
-
-        /**
-         * Handles the surfaceDestroyed message.
-         */
-        private void surfaceDestroyed() {
-            // In practice this never appears to be called -- the activity is always paused
-            // before the surface is destroyed.  In theory it could be called though.
-            Log.d(TAG, "TopTextureRenderThread surfaceDestroyed not implemented");
-            // mario
-            // releaseGl();
-        }
-
-        /**
-         * Sets up anything that depends on the window size.
-         */
-        /*
-        private void finishSurfaceSetup() {
-            int width = mWindowSurfaceWidth;
-            int height = mWindowSurfaceHeight;
-            Log.d(TAG, "finishSurfaceSetup size=" + width + "x" + height +
-                    " camera=" + mCameraPreviewWidth + "x" + mCameraPreviewHeight);
-
-            // Use full window.
-            GLES20.glViewport(0, 0, width, height);
-
-            // Simple orthographic projection, with (0,0) in lower-left corner.
-            Matrix.orthoM(mDisplayProjectionMatrix, 0, 0, width, 0, height, -1, 1);
-
-            // Default position is center of screen.
-            mPosX = width / 2.0f;
-            mPosY = height / 2.0f;
-
-            updateGeometry();
-
-            // Ready to go, start the camera.
-            Log.d(TAG, "starting camera preview");
-            try {
-                mCamera.setPreviewTexture(mCameraTexture);
-            } catch (IOException ioe) {
-                throw new RuntimeException(ioe);
-            }
-            mCamera.startPreview();
-        }
-        */
-
-        /**
-         * Updates the geometry of mRect, based on the size of the window and the current
-         * values set by the UI.
-         */
-        /*
-        private void updateGeometry() {
-            int width = mWindowSurfaceWidth;
-            int height = mWindowSurfaceHeight;
-
-            int smallDim = Math.min(width, height);
-            // Max scale is a bit larger than the screen, so we can show over-size.
-            float scaled = smallDim * (mSizePercent / 100.0f) * 1.25f;
-            float cameraAspect = (float) mCameraPreviewWidth / mCameraPreviewHeight;
-            int newWidth = Math.round(scaled * cameraAspect);
-            int newHeight = Math.round(scaled);
-
-            float zoomFactor = 1.0f - (mZoomPercent / 100.0f);
-            int rotAngle = Math.round(360 * (mRotatePercent / 100.0f));
-
-            mRect.setScale(newWidth, newHeight);
-            mRect.setPosition(mPosX, mPosY);
-            mRect.setRotation(rotAngle);
-            mRectDrawable.setScale(zoomFactor);
-
-            mMainHandler.sendRectSize(newWidth, newHeight);
-            mMainHandler.sendZoomArea(Math.round(mCameraPreviewWidth * zoomFactor),
-                    Math.round(mCameraPreviewHeight * zoomFactor));
-            mMainHandler.sendRotateDeg(rotAngle);
-        }
-
-
-        @Override   // SurfaceTexture.OnFrameAvailableListener; runs on arbitrary thread
-        public void onFrameAvailable(SurfaceTexture surfaceTexture) {
-            mHandler.sendFrameAvailable();
-        }
-        */
-
-        /**
-         * Handles incoming frame of data from the camera.
-         */
-        /*
-        private void frameAvailable() {
-            mCameraTexture.updateTexImage();
-            draw();
-        }
-        */
-
-        /**
-         * Draws the scene and submits the buffer.
-         */
-        /*
-        private void draw() {
-            GlUtil.checkGlError("draw start");
-
-            GLES20.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-            GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
-            mRect.draw(mTexProgram, mDisplayProjectionMatrix);
-            mWindowSurface.swapBuffers();
-
-            GlUtil.checkGlError("draw done");
-        }
-
-        private void setZoom(int percent) {
-            mZoomPercent = percent;
-            updateGeometry();
-        }
-
-        private void setSize(int percent) {
-            mSizePercent = percent;
-            updateGeometry();
-        }
-
-        private void setRotate(int percent) {
-            mRotatePercent = percent;
-            updateGeometry();
-        }
-
-        private void setPosition(int x, int y) {
-            mPosX = x;
-            mPosY = mWindowSurfaceHeight - y;   // GLES is upside-down
-            updateGeometry();
-        }
-        */
-        private void targetFramedByCamera(double f0, double f1, double f2) {
-            //SurfaceView svOnTop = (SurfaceView)findViewById(R.id.surfaceViewOnTopOfCamera);
-
-            mMainHandler.sendTempMessageParams(f0,f1,f2);
-            //(TextView) activityContext.findViewById(R.id.surfaceViewOnTopOfCamera).findViewById(R.id.tempTV);
-            //tv.setText("x: "+x+" y: "+y+" z: "+z);
-            sfvOnTop.setZOrderOnTop(true);    // necessary
-            SurfaceHolder sfOnTopHolder = sfvOnTop.getHolder();
-            if (sfOnTopHolder.getSurface().isValid()) {
-                Canvas c = sfOnTopHolder.lockCanvas();
-
-                Paint p = new Paint();
-                Bitmap b = BitmapFactory.decodeResource(activityContext.getResources(), R.drawable.androbot);
-                p.setColor(Color.RED);
-                c.drawBitmap(b, 0, 0, p);
-
-
-                //c.drawARGB(255,150,150,10);
-                sfOnTopHolder.unlockCanvasAndPost(c);
-            }
-        }
-
-        /**
-         * Opens a camera, and attempts to establish preview mode at the specified width
-         * and height with a fixed frame rate.
-         * <p>
-         * Sets mCameraPreviewWidth / mCameraPreviewHeight.
-         */
-        /*
-        private void openCamera(int desiredWidth, int desiredHeight, int desiredFps) {
-            if (mCamera != null) {
-                throw new RuntimeException("camera already initialized");
-            }
-
-            Camera.CameraInfo info = new Camera.CameraInfo();
-
-            // Try to find a front-facing camera (e.g. for videoconferencing).
-            int numCameras = Camera.getNumberOfCameras();
-            for (int i = 0; i < numCameras; i++) {
-                Camera.getCameraInfo(i, info);
-                if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-                    mCamera = Camera.open(i);
-                    break;
-                }
-            }
-            if (mCamera == null) {
-                Log.d(TAG, "No front-facing camera found; opening default");
-                mCamera = Camera.open();    // opens first back-facing camera
-            }
-            if (mCamera == null) {
-                throw new RuntimeException("Unable to open camera");
-            }
-
-            Camera.Parameters parms = mCamera.getParameters();
-
-            CameraUtils.choosePreviewSize(parms, desiredWidth, desiredHeight);
-
-            // Try to set the frame rate to a constant value.
-            int thousandFps = CameraUtils.chooseFixedPreviewFps(parms, desiredFps * 1000);
-
-            // Give the camera a hint that we're recording video.  This can have a big
-            // impact on frame rate.
-            parms.setRecordingHint(true);
-
-            mCamera.setParameters(parms);
-
-            int[] fpsRange = new int[2];
-            Camera.Size mCameraPreviewSize = parms.getPreviewSize();
-            parms.getPreviewFpsRange(fpsRange);
-            String previewFacts = mCameraPreviewSize.width + "x" + mCameraPreviewSize.height;
-            if (fpsRange[0] == fpsRange[1]) {
-                previewFacts += " @" + (fpsRange[0] / 1000.0) + "fps";
-            } else {
-                previewFacts += " @[" + (fpsRange[0] / 1000.0) +
-                        " - " + (fpsRange[1] / 1000.0) + "] fps";
-            }
-            Log.i(TAG, "Camera config: " + previewFacts);
-
-            mCameraPreviewWidth = mCameraPreviewSize.width;
-            mCameraPreviewHeight = mCameraPreviewSize.height;
-            mMainHandler.sendCameraParams(mCameraPreviewWidth, mCameraPreviewHeight,
-                    thousandFps / 1000.0f);
-        }
-        */
-
-        /**
-         * Stops camera preview, and releases the camera to the system.
-         */
-        /*
-        private void releaseCamera() {
-            if (mCamera != null) {
-                mCamera.stopPreview();
-                mCamera.release();
-                mCamera = null;
-                Log.d(TAG, "releaseCamera -- done");
-            }
-        }
-        */
-    }
-
-
-    /**
-     * Handler for RenderThread.  Used for messages sent from the UI thread to the render thread.
-     * <p/>
-     * The object is created on the render thread, and the various "send" methods are called
-     * from the UI thread.
-     */
-    private static class TopTextureViewRenderHandler extends Handler {
-        private static final int MSG_SURFACE_AVAILABLE = 0;
-        private static final int MSG_SURFACE_CHANGED = 1;
-        private static final int MSG_SURFACE_DESTROYED = 2;
-        private static final int MSG_SHUTDOWN = 3;
-        private static final int MSG_FRAME_AVAILABLE = 4;
-        private static final int MSG_ZOOM_VALUE = 5;
-        private static final int MSG_SIZE_VALUE = 6;
-        private static final int MSG_ROTATE_VALUE = 7;
-        private static final int MSG_POSITION = 8;
-        private static final int MSG_REDRAW = 9;
-        private static final int MSG_DRAW_ON_TOP_SURFACE = 10;
-
-        // This shouldn't need to be a weak ref, since we'll go away when the Looper quits,
-        // but no real harm in it.
-        private WeakReference<TopTextureViewRenderThread> mWeakTopTextureViewRenderThread;
-
-        /**
-         * Call from render thread.
-         */
-        public TopTextureViewRenderHandler(TopTextureViewRenderThread rt) {
-            mWeakTopTextureViewRenderThread = new WeakReference<TopTextureViewRenderThread>(rt);
-        }
-
-        /**
-         * Sends the "surface available" message.  If the surface was newly created (i.e.
-         * this is called from surfaceCreated()), set newSurface to true.  If this is
-         * being called during Activity startup for a previously-existing surface, set
-         * newSurface to false.
-         * <p/>
-         * The flag tells the caller whether or not it can expect a surfaceChanged() to
-         * arrive very soon.
-         * <p/>
-         * Call from UI thread.
-         */
-        public void sendSurfaceAvailable(SurfaceHolder holder, boolean newSurface) {
-            sendMessage(obtainMessage(MSG_SURFACE_AVAILABLE,
-                    newSurface ? 1 : 0, 0, holder));
-        }
-
-        /**
-         * Sends the "surface changed" message, forwarding what we got from the SurfaceHolder.
-         * <p/>
-         * Call from UI thread.
-         */
-        public void sendSurfaceChanged(@SuppressWarnings("unused") int format, int width,
-                                       int height) {
-            // ignore format
-            sendMessage(obtainMessage(MSG_SURFACE_CHANGED, width, height));
-        }
-
-        /**
-         * Sends the "shutdown" message, which tells the render thread to halt.
-         * <p/>
-         * Call from UI thread.
-         */
-        public void sendSurfaceDestroyed() {
-            sendMessage(obtainMessage(MSG_SURFACE_DESTROYED));
-        }
-
-        /**
-         * Sends the "shutdown" message, which tells the render thread to halt.
-         * <p/>
-         * Call from UI thread.
-         */
-        public void sendShutdown() {
-            sendMessage(obtainMessage(MSG_SHUTDOWN));
-        }
-
-        /**
-         * Sends the "frame available" message.
-         * <p/>
-         * Call from UI thread.
-         */
-        public void sendFrameAvailable() {
-            sendMessage(obtainMessage(MSG_FRAME_AVAILABLE));
-        }
-
-        /**
-         * Sends the "zoom value" message.  "progress" should be 0-100.
-         * <p/>
-         * Call from UI thread.
-         */
-        public void sendZoomValue(int progress) {
-            sendMessage(obtainMessage(MSG_ZOOM_VALUE, progress, 0));
-        }
-
-        /**
-         * Sends the "size value" message.  "progress" should be 0-100.
-         * <p/>
-         * Call from UI thread.
-         */
-        public void sendSizeValue(int progress) {
-            sendMessage(obtainMessage(MSG_SIZE_VALUE, progress, 0));
-        }
-
-        /**
-         * Sends the "rotate value" message.  "progress" should be 0-100.
-         * <p/>
-         * Call from UI thread.
-         */
-        public void sendRotateValue(int progress) {
-            sendMessage(obtainMessage(MSG_ROTATE_VALUE, progress, 0));
-        }
-
-        /**
-         * Sends the "position" message.  Sets the position of the rect.
-         * <p/>
-         * Call from UI thread.
-         */
-        public void sendPosition(int x, int y) {
-            sendMessage(obtainMessage(MSG_POSITION, x, y));
-        }
-
-
-        /**
-         * Sends the message that the target has been framed by the camera.
-         * Call from UI thread.
-         */
-        public void sendTargetFramedByCamera(double f0, double f1, double f2) {
-
-            //if(x>3 && y>3 && z>3)
-            sendMessage(obtainMessage(MSG_DRAW_ON_TOP_SURFACE, 0, 0, new Coordinates(f0,f1,f2)));
-
-        }
-
-
-        /**
-         * Sends the "redraw" message.  Forces an immediate redraw.
-         * <p/>
-         * Call from UI thread.
-         */
-        public void sendRedraw() {
-            sendMessage(obtainMessage(MSG_REDRAW));
-        }
-
-        @Override  // runs on RenderThread
-        public void handleMessage(Message msg) {
-            int what = msg.what;
-            //Log.d(TAG, "RenderHandler [" + this + "]: what=" + what);
-
-            TopTextureViewRenderThread renderThread = mWeakTopTextureViewRenderThread.get();
-            if (renderThread == null) {
-                Log.w(TAG, "RenderHandler.handleMessage: weak ref is null");
-                return;
-            }
-
-            switch (what) {
-                case MSG_DRAW_ON_TOP_SURFACE:
-                    Coordinates coors = (Coordinates) msg.obj;
-                    renderThread.targetFramedByCamera(coors.getX(), coors.getY(), coors.getZ());
-                    break;
-                /*
-                case MSG_SURFACE_AVAILABLE:
-                    renderThread.surfaceAvailable((SurfaceHolder) msg.obj, msg.arg1 != 0);
-                    break;
-                case MSG_SURFACE_CHANGED:
-                    renderThread.surfaceChanged(msg.arg1, msg.arg2);
-                    break;
-                */
-                case MSG_SURFACE_DESTROYED:
-                    renderThread.surfaceDestroyed();
-                    break;
-                case MSG_SHUTDOWN:
-                    renderThread.shutdown();
-                    break;
-                /*
-                case MSG_FRAME_AVAILABLE:
-                    renderThread.frameAvailable();
-                    break;
-                case MSG_POSITION:
-                    renderThread.setPosition(msg.arg1, msg.arg2);
-                    break;
-                */
-                default:
-                    throw new RuntimeException("unknown message " + what);
-            }
-        }
-    }
-
-
     private void buildAlertMessageNoGps() {
         final AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setMessage("Your GPS seems to be disabled, do you want to enable it?")
                 .setCancelable(false)
                 .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                     public void onClick(@SuppressWarnings("unused") final DialogInterface dialog, @SuppressWarnings("unused") final int id) {
-                        startActivity(new Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS));
+                        startActivity(new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS));
                     }
                 })
                 .setNegativeButton("No", new DialogInterface.OnClickListener() {

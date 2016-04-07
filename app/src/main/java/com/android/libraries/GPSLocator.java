@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -22,7 +23,7 @@ public class GPSLocator implements LocationListener {
 
     private LocationManager locationManager;
     TextureFromCameraActivity activity;
-
+    private SimParameters simulation;
 
     // Flag for GPS status
     boolean isGPSEnabled = false;
@@ -38,29 +39,69 @@ public class GPSLocator implements LocationListener {
     double longitude; // Longitude
 
     // The minimum distance to change Updates in meters
-    private static final long MIN_DISTANCE_CHANGE_FOR_UPDATES = 10; // 10 meters
+    private static final long MIN_DISTANCE_CHANGE_FOR_UPDATES = 2; // 2 meters
 
     // The minimum time between updates in milliseconds
-    private static final long MIN_TIME_BW_UPDATES = 1000 * 60 * 1; // 1 minute
+    private static final long MIN_TIME_BW_UPDATES = 2000; // 2sec
 
 
-    public GPSLocator(TextureFromCameraActivity act){
-        activity=act;
+
+
+    public GPSLocator(TextureFromCameraActivity act, SimParameters simulation) {
+        activity = act;
         locationManager = (LocationManager) activity.getSystemService(Context.LOCATION_SERVICE);
-        checkPermissions();
-        Location location = this.getLocation();
-        String loc = " lat:" + location.getLatitude() + " lon:"+location.getLongitude();
-        Log.d("LOCATION CHANGED!!", loc );
+
+        Criteria criteria = new Criteria();
+        criteria.setAccuracy(Criteria.ACCURACY_FINE);
+        criteria.setPowerRequirement(Criteria.NO_REQUIREMENT);
+        locationManager.getBestProvider(criteria, true);
+
+        location = requestLocationUpdate();
+        if (location != null) {
+            String loc = " lat:" + location.getLatitude() + " lon:" + location.getLongitude();
+            Log.d("LOCATION CHANGED!!", loc);
+            this.simulation = simulation;
+            //SimParameters simP = new SimParameters();
+            simulation.testDistance(location);
+        } else {
+            Log.d("LOCATION Null", "check line 51 at GPSLocator");
+        }
 
 
-        SimParameters simP = new SimParameters();
-        simP.testDistance(location);
     }
 
+
+
+    /**
+     * Stop using GPS listener
+     * Calling this function will stop using GPS in your app.
+     * */
+    public void stopUsingGPS() {
+        try {
+            if (locationManager != null) {
+                checkPermissions();
+                locationManager.removeUpdates(GPSLocator.this);
+            }
+
+        }
+        catch(SecurityException se){
+            this.checkPermissions();
+        }
+    }
+
+
     @Override
-    public void onLocationChanged(Location location) {
-        String loc = " lat:" + location.getLatitude() + " lon:"+location.getLongitude();
+    public void onLocationChanged(Location newLocation) {
+        String loc = " lat:" + newLocation.getLatitude() + " lon:"+newLocation.getLongitude();
         Log.d("LOCATION CHANGED!!", loc );
+
+        //if(newLocation.getAccuracy()<50){}
+        if(newLocation!=null) {
+
+            location = newLocation;
+            Log.e("LOCATION UPDATED", loc );
+
+        }
     }
 
     @Override
@@ -78,8 +119,11 @@ public class GPSLocator implements LocationListener {
 
     }
 
+    public Location getLocation(){
+        return location;
+    }
 
-    public Location getLocation() {
+    public Location requestLocationUpdate() {
         try {
             locationManager = (LocationManager) activity
                     .getSystemService(Context.LOCATION_SERVICE);
@@ -207,22 +251,6 @@ public class GPSLocator implements LocationListener {
         }
     }
 
-    /**
-     * Stop using GPS listener
-     * Calling this function will stop using GPS in your app.
-     * */
-    public void stopUsingGPS() {
-        try {
-            if (locationManager != null) {
-                checkPermissions();
-                locationManager.removeUpdates(GPSLocator.this);
-            }
-
-        }
-        catch(SecurityException se){
-            this.checkPermissions();
-        }
-    }
 
     /**
      * Function to get latitude
