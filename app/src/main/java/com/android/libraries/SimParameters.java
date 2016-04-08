@@ -67,7 +67,7 @@ public class SimParameters {
         targetLocations.put(id,loc);
     }
 
-    public Map<String,Location> getTargetLocation() {
+    public Map<String,Location> getTargetLocations() {
 
         return targetLocations;
 

@@ -150,7 +150,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
     public void createPrimitiveCube(String id, float x, float y, float z){
 
         Log.d("object:"+id, "CREATED at:"+x+" y:"+y+" z:"+z);
-        TextureManager txtManager = TextureManager.getInstance().getInstance();
+        TextureManager txtManager = TextureManager.getInstance();
         Texture txt;
         if(!txtManager.containsTexture(id)) {
             //txtManager.removeTexture(id);
@@ -235,9 +235,8 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         //this.setUpSkyBox();
 
         //perform lights and transformations to stored object
-        orientateCamera(rollCam, pitchCam, headCam);
         manageMovementUpdate();
-
+        orientateCamera(rollCam, pitchCam, headCam);
 
         //cube.rotateX(0.1f);
 
@@ -270,18 +269,17 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
 
     //R = earth’s radius (mean radius = 6371km)
     private static final int R = 6371000;//result will be in meters
-    // transform gps-points to the correspending screen-points on the android device
+
+    /*
+    translation attempt
+
     public void manageMovementUpdate(){
 
-        world.removeAllObjects();
-        //createPrimitiveCube("xaxis", 5, 0, 0);
-        //createPrimitiveCube("yaxis",0,5,0);
-        //createPrimitiveCube("zaxis",0,0,5);
         Location myLoc = gpsLocator.getLocation();
-
+        Object3D temp=null;
         if(myLoc!=null) {
-            for (String targetID : simulation.getTargetLocation().keySet()) {
-                Location target = simulation.getTargetLocation().get(targetID);
+            for (String targetID : simulation.getTargetLocations().keySet()) {
+                Location target = simulation.getTargetLocations().get(targetID);
 
                 float ray = myLoc.distanceTo(target);
                 float bearingAngleOfView = headCam + (-1 * rollCam);
@@ -303,11 +301,62 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
                 Double z = ray * Math.cos(alti) * Math.cos(azim);
                 Double y = -1 * ray * Math.cos(azim) * Math.sin(alti);
 
-                /*
-                Double x = ray * Math.sin(alti);
-                Double z = ray * Math.cos(alti) * Math.sin(azim);
-                Double y = ray * Math.cos(alti) * Math.cos(azim);
-                */
+                if (targetID.equals("pirandello10")) {
+                    Log.e("id:" + targetID + "XYZ:", x.floatValue() + " " + y.floatValue() + " " + z.floatValue() + " ");
+                    //Log.e("lat:" + myLoc.getLatitude(), "long:" + myLoc.getLongitude());
+                    Log.e("myLoc-targ:distTo():", myLoc.distanceTo(target) + "");
+                    Log.e("head:", headCam + "");
+                    Log.e("BEARING-head:", azimuth + "");
+                    Log.e("altitude", altitude + "");
+                }
+
+                temp = world.getObjectByName(targetID);
+                if(temp==null)
+                    createPrimitiveCube(targetID, x.floatValue(), y.floatValue(), z.floatValue());
+                else {
+                    Log.e("object","translated");
+                    world.getObjectByName(targetID).translate(x.floatValue(), y.floatValue(), z.floatValue());
+                }
+            }
+        }
+
+    }
+     */
+
+
+    // transform gps-points to the correspending screen-points on the android device
+    public void manageMovementUpdate(){
+
+        world.removeAllObjects();
+        //createPrimitiveCube("xaxis", 5, 0, 0);
+        //createPrimitiveCube("yaxis",0,5,0);
+        //createPrimitiveCube("zaxis",0,0,5);
+        Location myLoc = gpsLocator.getLocation();
+
+        if(myLoc!=null) {
+            for (String targetID : simulation.getTargetLocations().keySet()) {
+                Location target = simulation.getTargetLocations().get(targetID);
+
+                float ray = myLoc.distanceTo(target);
+                float bearingAngleOfView = headCam + (-1 * rollCam);
+                float azimuth = myLoc.bearingTo(target) - bearingAngleOfView;
+                Double azim = toRad((double) azimuth);
+                float altitude = 90 + pitchCam;
+
+                if (facedown) {
+                    altitude = altitude * -1;
+                }
+
+                Double alti = toRad((double) altitude);
+
+
+                Log.e("isFacedown", facedown + "");
+
+
+                Double x = ray * Math.sin(azim);
+                Double z = ray * Math.cos(alti) * Math.cos(azim);
+                Double y = -1 * ray * Math.cos(azim) * Math.sin(alti);
+
                 if (targetID.equals("pirandello10")) {
                     Log.e("id:" + targetID + "XYZ:", x.floatValue() + " " + y.floatValue() + " " + z.floatValue() + " ");
                     //Log.e("lat:" + myLoc.getLatitude(), "long:" + myLoc.getLongitude());
@@ -322,6 +371,8 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         }
 
     }
+
+
     /*
     //R = earth’s radius (mean radius = 6371km)
     private static final int R = 6371000;//result will be in meters
