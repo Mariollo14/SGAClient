@@ -17,13 +17,15 @@ public class SimParameters {
     public SimParameters(){
 
         //test
-        //this.addNewTarget("asobrero",45.0808178,7.6655203,0);
-        //this.addNewTarget("csoregina",45.082234,7.666427,0);
-        //this.addNewTarget("pirandello",41.128718,14.794887,174);
+        this.addNewTarget("asobrero",45.0808178,7.6655203,0);
+        this.addNewTarget("csoregina",45.082234,7.666427,0);
+        this.addNewTarget("pirandello",41.128718,14.794887,174);
         this.addNewTarget("rosina",41.1254395,14.7934637,177);
         this.addNewTarget("flora",41.1287446,14.7892335,172);
-        //this.addNewTarget("duomo",41.1314897,14.7742939,136);
-        //this.addNewTarget("traiano",41.1325468,14.7791313,141);
+        this.addNewTarget("duomo",41.1314897,14.7742939,136);
+        this.addNewTarget("traiano",41.1325468,14.7791313,141);
+        this.addNewTarget("moscovio",41.132284,14.779063,141);
+        this.addNewTarget("nikila",41.131527,14.780288,141);
         this.addNewTarget("pirandello10",41.1292366,14.7941399, 173);
         /*
         Location asobrero = new Location("asobrero");

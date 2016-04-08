@@ -163,14 +163,17 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
             else if(id.equals("pirandello10")){
                 txt = new Texture(64,64,RGBColor.GREEN);
             }
-            else if(id.equals("xaxis")){
-                txt = new Texture(64,64, RGBColor.BLACK);
+            else if(id.equals("traiano")){
+                txt = new Texture(64,64,RGBColor.BLACK);
             }
-            else if(id.equals("yaxis")){
-                txt = new Texture(64,64, RGBColor.BLACK);
+            else if(id.equals("moscovio")){
+                txt = new Texture(64,64,new RGBColor(144,132,53));
             }
-            else if(id.equals("zaxis")){
-                txt = new Texture(64,64, RGBColor.BLACK);
+            else if(id.equals("duomo")){
+                txt = new Texture(64,64,new RGBColor(255,153,0));
+            }
+            else if(id.equals("nikila")){
+                txt = new Texture(64,64,new RGBColor(223,115,255));
             }
             else
                 txt = new Texture(64,64,RGBColor.BLUE);
@@ -286,7 +289,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
                 Double azim = toRad((double) azimuth);
                 float altitude = 90 + pitchCam;
 
-                if (!facedown) {
+                if (facedown) {
                     altitude = altitude * -1;
                 }
 
