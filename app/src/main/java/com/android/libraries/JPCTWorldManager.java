@@ -242,17 +242,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
 
 
         //this.panoramicView();
-        /*
-        if(orMatrix!=null) {
-            //
-            float[] result = new float[9];
-            SensorManager.remapCoordinateSystem(orMatrix, SensorManager.AXIS_Y,SensorManager.AXIS_MINUS_X, result);
-            //SensorManager.remapCoordinateSystem(orMatrix, SensorManager.AXIS_Y,SensorManager.AXIS_X, result);
-            com.threed.jpct.Matrix mResult = new com.threed.jpct.Matrix();
-            SensorFusion.copyMatrix(result, mResult);
-            world.getCamera().setBack(mResult);
-        }
-        */
+
         world.renderScene(frameBuffer);
         //the scene is drawn on the frame buffer.
         world.draw(frameBuffer);//also world.drawWireframe can be used to just draw the borders
