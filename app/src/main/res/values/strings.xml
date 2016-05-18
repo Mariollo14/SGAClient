@@ -150,4 +150,9 @@
     <string name="title_scheduled_swap">Scheduled swap</string>
     <string name="title_texture_from_camera">Texture from camera</string>
 
+    <!-- ANDROID EYE -->
+    <string name="msg_access_local">Open with browser : </string>
+    <string name="msg_wifi_error">Error: Please enable wifi</string>
+    <string name="msg_port_error">Error: 8080 port is in used </string>
+
 </resources>

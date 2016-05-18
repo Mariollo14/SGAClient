@@ -27,6 +27,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.ImageFormat;
 import android.graphics.Paint;
 import android.graphics.PixelFormat;
 import android.graphics.SurfaceTexture;
@@ -36,7 +37,11 @@ import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.media.AudioFormat;
+import android.media.AudioRecord;
+import android.media.MediaRecorder;
 import android.net.Uri;
+import android.net.wifi.WifiManager;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.opengl.Matrix;
@@ -70,9 +75,20 @@ import com.android.libraries.gles.WindowSurface;
 import com.threed.jpct.RGBColor;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.ref.WeakReference;
+import java.math.BigInteger;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.List;
 import java.util.Locale;
+import java.util.Properties;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.locks.ReentrantLock;
 
 
 //sensors management
@@ -81,10 +97,21 @@ import android.hardware.SensorManager;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 
+import android.hardware.Camera;
+import android.hardware.Camera.PreviewCallback;
+import android.hardware.Camera.PictureCallback;
+
+import org.java_websocket.WebSocket;
+import org.java_websocket.handshake.ClientHandshake;
+import org.java_websocket.server.WebSocketServer;
+
 import javax.microedition.khronos.egl.EGL10;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.egl.EGLDisplay;
 import javax.microedition.khronos.opengles.GL10;
+
+import teaonly.droideye.MediaBlock;
+import teaonly.droideye.TeaServer;
 
 /**
  * Direct the Camera preview to a GLES texture and manipulate it.
@@ -120,8 +147,7 @@ import javax.microedition.khronos.opengles.GL10;
  * </ol>
  */
 public class TextureFromCameraActivity extends Activity
-        implements SurfaceHolder.Callback/*,SeekBar.OnSeekBarChangeListener*/
-        {
+        implements SurfaceHolder.Callback/*,SeekBar.OnSeekBarChangeListener*/ {
     public static final String TAG = "TextureCameraActivity";/////MainActivity.TAG;
 
     private static final int DEFAULT_ZOOM_PERCENT = 0;      // 0-100
@@ -160,8 +186,6 @@ public class TextureFromCameraActivity extends Activity
     private SimParameters simulation = null;
 
 
-
-
     // Thread that handles rendering and controls the camera.  Started in onResume(),
     // stopped in onPause().
     private RenderThread mRenderThread;
@@ -188,27 +212,65 @@ public class TextureFromCameraActivity extends Activity
 
 
     private Double xG, yG, zG;
-    private Double vCamRoll,vCamPitch,vCamHead;
+    private Double vCamRoll, vCamPitch, vCamHead;
     private GPSLocator myLocator;
     private SensorFusion mySensorFusion;
 
+
+    //EYE
+    private final int ServerPort = 8080;
+    private final int StreamingPort = 8088;
+    private final int PictureWidth = 480;
+    private final int PictureHeight = 360;
+    private static final int MediaBlockNumber = 3;
+    private final int MediaBlockSize = 1024*512;
+    private final int EstimatedFrameNumber = 30;
+    private final int StreamingInterval = 100;
+
+
+    // EYE
+    private StreamingServer streamingServer = null;
+    private TeaServer webServer = null;
+    //private OverlayView overlayView = null;
+    //private CameraView cameraView = null;
+    private AudioRecord audioCapture = null;
+
+    ExecutorService executor = Executors.newFixedThreadPool(3);
+    VideoEncodingTask videoTask = new  VideoEncodingTask();
+    private ReentrantLock previewLock = new ReentrantLock();
+    boolean inProcessing = false;
+
+    byte[] yuvFrame = new byte[1920*1280*2];
+
+    private static MediaBlock[] mediaBlocks = new MediaBlock[MediaBlockNumber];
+    int mediaWriteIndex = 0;
+    int mediaReadIndex = 0;
+
+    Handler streamingHandler;
+
+
+    //EYE class CameraView fragment
+    private List<int[]>       supportedFrameRate;
+    private List<Camera.Size> supportedSizes;
+    private Camera.Size procSize_;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
 
         this.simulation = new SimParameters();
 
         /*
             GPS Sensor
          */
-        myLocator = new GPSLocator(this,simulation);
+        myLocator = new GPSLocator(this, simulation);
 
 
         //sensors
         mySensorFusion = new SensorFusion(this);
 
-        jpctWorldManager = new JPCTWorldManager(this,simulation,myLocator);
-
-
+        jpctWorldManager = new JPCTWorldManager(this, simulation, myLocator);
 
 
         super.onCreate(savedInstanceState);
@@ -280,6 +342,7 @@ public class TextureFromCameraActivity extends Activity
         rl.addView(cameraView);
         rl.addView(mGLView);
         rl.addView(tmptv);
+        tmptv = new TextView(this);
 
         /*
         mario
@@ -294,8 +357,6 @@ public class TextureFromCameraActivity extends Activity
         mRotateBar.setOnSeekBarChangeListener(this);
         updateControls();
         */
-
-
 
     }
 
@@ -358,6 +419,28 @@ public class TextureFromCameraActivity extends Activity
             Toast.makeText(getApplicationContext(), "Data lost due to excess use of other apps", Toast.LENGTH_LONG).show();
         }
 
+        try {
+            streamingServer = new StreamingServer(StreamingPort);
+            streamingServer.start();
+        } catch (UnknownHostException e) {
+            return;
+        }
+
+        if ( initWebServer() ) {
+            initAudio();
+            //initCamera();
+        } else {
+            return;
+        }
+
+        streamingHandler = new Handler();
+        streamingHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                doStreaming();
+            }
+        }, StreamingInterval);
+
     }
 
     @Override
@@ -394,7 +477,13 @@ public class TextureFromCameraActivity extends Activity
             topRenderThread = null;
         }
         */
+        if ( webServer != null)
+            webServer.stop();
+        if ( audioCapture != null)
+            audioCapture.release();
+
     }
+
 
     @Override
     public void onRequestPermissionsResult(int requestCode,
@@ -463,6 +552,8 @@ public class TextureFromCameraActivity extends Activity
             // is created.
             Log.d(TAG, "render thread not running");
         }
+
+
     }
 
     @Override   // SurfaceHolder.Callback
@@ -597,9 +688,9 @@ public class TextureFromCameraActivity extends Activity
 
 
     //called by SensorFusion
-    public void onNewOrientationAnglesComputed(float roll,float pitch,float head, final boolean facedown){
+    public void onNewOrientationAnglesComputed(float roll, float pitch, float head, final boolean facedown) {
 
-        final float rollA=roll,pitchA=pitch,headA=head;
+        final float rollA = roll, pitchA = pitch, headA = head;
 
 
         mGLView.queueEvent(new Runnable() {
@@ -629,12 +720,11 @@ public class TextureFromCameraActivity extends Activity
 
     }
 
-    public void showOrientationVirtualCameraAngle(float roll,float pitch,float head) {
+    public void showOrientationVirtualCameraAngle(float roll, float pitch, float head) {
 
-                this.mHandler.sendVCamOrientation(roll,pitch,head);
+        this.mHandler.sendVCamOrientation(roll, pitch, head);
 
     }
-
 
 
     /**
@@ -647,9 +737,9 @@ public class TextureFromCameraActivity extends Activity
 
         //TextView tv = (TextView) findViewById(R.id.tfcCameraParams_text);
         //tv.setText(str);
-        if(xG!=null) {
+        if (xG != null) {
             String coordinates = "H:" + xG.floatValue() + "\n P:" + yG.floatValue() + "\n R:" + zG.floatValue();
-                    //+ "VR:" + vCamRoll.floatValue() + " VP:" + vCamPitch.floatValue() + " VH:" + vCamHead.floatValue();
+            //+ "VR:" + vCamRoll.floatValue() + " VP:" + vCamPitch.floatValue() + " VH:" + vCamHead.floatValue();
             tmptv.setText(coordinates);
         }
        /*
@@ -690,8 +780,8 @@ public class TextureFromCameraActivity extends Activity
             sendMessage(obtainMessage(MSG_SET_TEMP_TV, 0, 0, new Coordinates(f0, f1, f2)));
         }
 
-        public void sendVCamOrientation(float roll,float pitch,float head){
-            sendMessage(obtainMessage(MSG_SET_VCAM, 0, 0, new Coordinates(roll,pitch,head)));
+        public void sendVCamOrientation(float roll, float pitch, float head) {
+            sendMessage(obtainMessage(MSG_SET_VCAM, 0, 0, new Coordinates(roll, pitch, head)));
         }
 
         /**
@@ -781,7 +871,7 @@ public class TextureFromCameraActivity extends Activity
                     activity.updateControls();
                     break;
                 }
-                case MSG_SET_VCAM:{
+                case MSG_SET_VCAM: {
                     Coordinates coors = (Coordinates) msg.obj;
                     activity.vCamRoll = coors.getX();
                     activity.vCamPitch = coors.getY();
@@ -799,7 +889,7 @@ public class TextureFromCameraActivity extends Activity
     /**
      * Thread that handles all rendering and camera operations.
      */
-    private static class RenderThread extends Thread implements
+    private class RenderThread extends Thread implements
             SurfaceTexture.OnFrameAvailableListener {
         // Object must be created on render thread to get correct Looper, but is used from
         // UI thread, so we need to declare it volatile to ensure the UI thread sees a fully
@@ -932,6 +1022,63 @@ public class TextureFromCameraActivity extends Activity
             }
 
             mCameraTexture.setOnFrameAvailableListener(this);
+
+            //EYE
+            //onCameraReady fragment
+            mCamera.stopPreview();
+            setupCamera(PictureWidth, PictureHeight, 4, 25.0, previewCb);
+            nativeInitMediaEncoder(cameraView.getWidth(), cameraView.getHeight());
+            if ( audioCapture != null) {
+                audioCapture.startRecording();
+                AudioEncoder audioEncoder = new AudioEncoder();
+                audioEncoder.start();
+            }
+            mCamera.startPreview();
+
+        }
+
+        //EYE
+        public void setupCamera(int wid, int hei, int bufNumber, double fps, PreviewCallback cb) {
+
+            double diff = Math.abs(supportedSizes.get(0).width*supportedSizes.get(0).height - wid*hei);
+            int targetIndex = 0;
+            for(int i = 1; i < supportedSizes.size(); i++) {
+                double newDiff =  Math.abs(supportedSizes.get(i).width*supportedSizes.get(i).height - wid*hei);
+                if ( newDiff < diff) {
+                    diff = newDiff;
+                    targetIndex = i;
+                }
+            }
+            procSize_.width = supportedSizes.get(targetIndex).width;
+            procSize_.height = supportedSizes.get(targetIndex).height;
+
+            diff = Math.abs(supportedFrameRate.get(0)[0] * supportedFrameRate.get(0)[1]  - fps*fps*1000*1000);
+            targetIndex = 0;
+            for(int i = 1; i < supportedFrameRate.size(); i++) {
+                double newDiff = Math.abs(supportedFrameRate.get(i)[0] * supportedFrameRate.get(i)[1]  - fps*fps*1000*1000);
+                if ( newDiff < diff) {
+                    diff = newDiff;
+                    targetIndex = i;
+                }
+            }
+            int targetMaxFrameRate = supportedFrameRate.get(targetIndex)[0];
+            int targetMinFrameRate = supportedFrameRate.get(targetIndex)[1];
+
+            Camera.Parameters p = mCamera.getParameters();
+            p.setPreviewSize(procSize_.width, procSize_.height);
+            p.setPreviewFormat(ImageFormat.NV21);
+            p.setPreviewFpsRange(targetMaxFrameRate, targetMinFrameRate);
+            mCamera.setParameters(p);
+
+            PixelFormat pixelFormat = new PixelFormat();
+            PixelFormat.getPixelFormatInfo(ImageFormat.NV21, pixelFormat);
+            int bufSize = procSize_.width * procSize_.height * pixelFormat.bitsPerPixel / 8;
+            byte[] buffer = null;
+            for(int i = 0; i < bufNumber; i++) {
+                buffer = new byte[ bufSize ];
+                mCamera.addCallbackBuffer(buffer);
+            }
+            mCamera.setPreviewCallbackWithBuffer(cb);
         }
 
         /**
@@ -1031,7 +1178,7 @@ public class TextureFromCameraActivity extends Activity
 
             float zoomFactor = 1.0f - (mZoomPercent / 100.0f);
             //mario rotation changed
-            int rotAngle =-90;//Math.round(360 * (mRotatePercent / 100.0f));
+            int rotAngle = -90;//Math.round(360 * (mRotatePercent / 100.0f));
 
             mRect.setScale(newWidth, newHeight);
             mRect.setPosition(mPosX, mPosY);
@@ -1104,6 +1251,14 @@ public class TextureFromCameraActivity extends Activity
                 throw new RuntimeException("camera already initialized");
             }
 
+            //EYE
+            // init audio and camera
+            for(int i = 0; i < MediaBlockNumber; i++) {
+                mediaBlocks[i] = new MediaBlock(MediaBlockSize);
+            }
+            resetMediaBuffer();
+
+
             Camera.CameraInfo info = new Camera.CameraInfo();
 
             // Try to find a front-facing camera (e.g. for videoconferencing).
@@ -1124,6 +1279,14 @@ public class TextureFromCameraActivity extends Activity
             }
 
             Camera.Parameters parms = mCamera.getParameters();
+
+            //EYE
+            supportedFrameRate = parms.getSupportedPreviewFpsRange();
+            supportedSizes = parms.getSupportedPreviewSizes();
+            procSize_ = supportedSizes.get( supportedSizes.size()/2 );
+            //p.setPreviewSize(procSize_.width, procSize_.height);
+            mCamera.setPreviewCallbackWithBuffer(null);
+
 
             CameraUtils.choosePreviewSize(parms, desiredWidth, desiredHeight);
 
@@ -1362,6 +1525,377 @@ public class TextureFromCameraActivity extends Activity
                 });
         final AlertDialog alert = builder.create();
         alert.show();
+    }
+
+    private native void nativeInitMediaEncoder(int width, int height);
+
+    private native void nativeReleaseMediaEncoder(int width, int height);
+
+    private native int nativeDoVideoEncode(byte[] in, byte[] out, int flag);
+    private native int nativeDoAudioEncode(byte[] in, int length, byte[] out);
+    static {
+        System.loadLibrary("MediaEncoder");
+    }
+
+
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+    }
+
+
+    //
+    //  Internal help functions
+    //
+    private boolean initWebServer() {
+
+        String ipAddr = wifiIpAddress(this);
+        if ( ipAddr != null ) {
+            try{
+                webServer = new TeaServer(8080, this);
+                webServer.registerCGI("/cgi/query", doQuery);
+            }catch (IOException e){
+                webServer = null;
+            }
+        }
+
+        TextView tv = (TextView)findViewById(R.id.tv_message);
+        if ( webServer != null) {
+            tv.setText( getString(R.string.msg_access_local) + " http://" + ipAddr  + ":8080" );
+            return true;
+        } else {
+            if ( ipAddr == null) {
+                tv.setText( getString(R.string.msg_wifi_error) );
+            } else {
+                tv.setText( getString(R.string.msg_port_error) );
+            }
+            return false;
+        }
+    }
+
+
+    /*
+    private void initCamera() {
+        SurfaceView cameraSurface = (SurfaceView)findViewById(R.id.surface_camera);
+        cameraView = new CameraView(cameraSurface);
+        cameraView.setCameraReadyCallback(this);
+
+        overlayView = (OverlayView)findViewById(R.id.surface_overlay);
+        //overlayView_.setOnTouchListener(this);
+        //overlayView_.setUpdateDoneCallback(this);
+    }
+    */
+
+    private void initAudio() {
+        int minBufferSize = AudioRecord.getMinBufferSize(16000, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
+        int targetSize = 16000 * 2;      // 1 seconds buffer size
+        if (targetSize < minBufferSize) {
+            targetSize = minBufferSize;
+        }
+        if (audioCapture == null) {
+            try {
+                audioCapture = new AudioRecord(MediaRecorder.AudioSource.MIC,
+                        8000,
+                        AudioFormat.CHANNEL_IN_MONO,
+                        AudioFormat.ENCODING_PCM_16BIT,
+                        targetSize);
+            } catch (IllegalArgumentException	 e) {
+                audioCapture = null;
+            }
+        }
+    }
+
+    private void doStreaming () {
+        synchronized(TextureFromCameraActivity.this) {
+
+            MediaBlock targetBlock = mediaBlocks[mediaReadIndex];
+            if ( targetBlock.flag == 1) {
+                streamingServer.sendMedia( targetBlock.data(), targetBlock.length());
+                targetBlock.reset();
+
+                mediaReadIndex ++;
+                if ( mediaReadIndex >= MediaBlockNumber) {
+                    mediaReadIndex = 0;
+                }
+            }
+        }
+
+        streamingHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                doStreaming();
+            }
+        }, StreamingInterval);
+
+    }
+
+    protected String wifiIpAddress(Context context) {
+        WifiManager wifiManager = (WifiManager) context.getSystemService(WIFI_SERVICE);
+        int ipAddress = wifiManager.getConnectionInfo().getIpAddress();
+
+        // Convert little-endian to big-endianif needed
+        if (ByteOrder.nativeOrder().equals(ByteOrder.LITTLE_ENDIAN)) {
+            ipAddress = Integer.reverseBytes(ipAddress);
+        }
+
+        byte[] ipByteArray = BigInteger.valueOf(ipAddress).toByteArray();
+
+        String ipAddressString;
+        try {
+            ipAddressString = InetAddress.getByAddress(ipByteArray).getHostAddress();
+        } catch (UnknownHostException ex) {
+            Log.e("WIFIIP", "Unable to get host address.");
+            ipAddressString = null;
+        }
+
+        return ipAddressString;
+    }
+
+    //
+    //  Internal help class and object definment
+    //
+    private PreviewCallback previewCb = new PreviewCallback() {
+        public void onPreviewFrame(byte[] frame, Camera c) {
+            previewLock.lock();
+            doVideoEncode(frame);
+            c.addCallbackBuffer(frame);
+            previewLock.unlock();
+        }
+    };
+
+
+    private void doVideoEncode(byte[] frame) {
+        if ( inProcessing == true) {
+            return;
+        }
+        inProcessing = true;
+
+        int picWidth = mCameraPreviewWidth;//cameraView.Width();
+        int picHeight = mCameraPreviewHeight;//cameraView.Height();
+        int size = picWidth*picHeight + picWidth*picHeight/2;
+        System.arraycopy(frame, 0, yuvFrame, 0, size);
+
+        executor.execute(videoTask);
+    };
+
+    private TeaServer.CommonGatewayInterface doQuery = new TeaServer.CommonGatewayInterface () {
+        @Override
+        public String run(Properties parms) {
+            String ret = "";
+            if ( streamingServer.inStreaming == true ) {
+                ret = "{\"state\": \"busy\"}";
+            } else {
+                ret = "{\"state\": \"ok\",";
+                ret = ret + "\"width\": \"" + mCameraPreviewWidth/*cameraView.Width()*/ + "\",";
+                ret = ret + "\"height\": \"" + mCameraPreviewHeight/*cameraView.Height()*/ + "\"}";
+            }
+            return ret;
+        }
+
+        @Override
+        public InputStream streaming(Properties parms) {
+            return null;
+        }
+    };
+
+    //EYE
+    private class VideoEncodingTask implements Runnable {
+        private byte[] resultNal = new byte[1024*1024];
+        private byte[] videoHeader = new byte[8];
+
+        public VideoEncodingTask() {
+            videoHeader[0] = (byte)0x19;
+            videoHeader[1] = (byte)0x79;
+        }
+
+        public void run() {
+            MediaBlock currentBlock = mediaBlocks[ mediaWriteIndex ];
+            if ( currentBlock.flag == 1) {
+                inProcessing = false;
+                return;
+            }
+
+            int intraFlag = 0;
+            if ( currentBlock.videoCount == 0) {
+                intraFlag = 1;
+            }
+            int millis = (int)(System.currentTimeMillis() % 65535);
+            int ret = nativeDoVideoEncode(yuvFrame, resultNal, intraFlag);
+            if ( ret <= 0) {
+                return;
+            }
+
+            // timestamp
+            videoHeader[2] = (byte)(millis & 0xFF);
+            videoHeader[3] = (byte)((millis>>8) & 0xFF);
+            // length
+            videoHeader[4] = (byte)(ret & 0xFF);
+            videoHeader[5] = (byte)((ret>>8) & 0xFF);
+            videoHeader[6] = (byte)((ret>>16) & 0xFF);
+            videoHeader[7] = (byte)((ret>>24) & 0xFF);
+
+            synchronized(TextureFromCameraActivity.this) {
+                if ( currentBlock.flag == 0) {
+                    boolean changeBlock = false;
+
+                    if ( currentBlock.length() + ret + 8 <= MediaBlockSize ) {
+                        currentBlock.write( videoHeader, 8 );
+                        currentBlock.writeVideo( resultNal, ret);
+                    } else {
+                        changeBlock = true;
+                    }
+
+                    if ( changeBlock == false ) {
+                        if ( currentBlock.videoCount >= EstimatedFrameNumber) {
+                            changeBlock = true;
+                        }
+                    }
+
+                    if ( changeBlock == true) {
+                        currentBlock.flag = 1;
+
+                        mediaWriteIndex ++;
+                        if ( mediaWriteIndex >= MediaBlockNumber) {
+                            mediaWriteIndex = 0;
+                        }
+                    }
+                }
+
+            }
+
+            inProcessing = false;
+        }
+    };
+
+    //EYE
+    private class AudioEncoder extends Thread {
+        private byte[] audioPCM = new byte[1024*32];
+        private byte[] audioPacket = new byte[1024*1024];
+        private byte[] audioHeader = new byte[8];
+
+        int packageSize = 16000;
+
+        public AudioEncoder () {
+            audioHeader[0] = (byte)0x19;
+            audioHeader[1] = (byte)0x82;
+        }
+
+        @Override
+        public void run() {
+            while(true) {
+                int millis = (int)(System.currentTimeMillis() % 65535);
+
+                int ret = audioCapture.read(audioPCM, 0, packageSize);
+                if ( ret == AudioRecord.ERROR_INVALID_OPERATION ||
+                        ret == AudioRecord.ERROR_BAD_VALUE) {
+                    break;
+                }
+
+                ret = nativeDoAudioEncode(audioPCM, ret, audioPacket);
+                if(ret <= 0) {
+                    break;
+                }
+
+                // timestamp
+                audioHeader[2] = (byte)(millis & 0xFF);
+                audioHeader[3] = (byte)((millis>>8) & 0xFF);
+                // length
+                audioHeader[4] = (byte)(ret & 0xFF);
+                audioHeader[5] = (byte)((ret>>8) & 0xFF);
+                audioHeader[6] = (byte)((ret>>16) & 0xFF);
+                audioHeader[7] = (byte)((ret>>24) & 0xFF);
+
+                synchronized (TextureFromCameraActivity.this) {
+                    MediaBlock currentBlock = mediaBlocks[ mediaWriteIndex];
+                    if ( currentBlock.flag == 0) {
+                        currentBlock.write( audioHeader, 8);
+                        ret = currentBlock.write( audioPacket, ret);
+                        if ( ret == 0) {
+                            Log.d(TAG, ">>>>>>> lost audio in Java>>>");
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
+    //EYE
+    private void resetMediaBuffer() {
+        synchronized(TextureFromCameraActivity.this) {
+            for (int i = 1; i < MediaBlockNumber; i++) {
+                mediaBlocks[i].reset();
+            }
+            mediaWriteIndex = 0;
+            mediaReadIndex = 0;
+        }
+    }
+
+    //EYE
+    private class StreamingServer extends WebSocketServer {
+        private WebSocket mediaSocket = null;
+        public boolean inStreaming = false;
+        private final int MediaBlockSize = 1024 * 512;
+        ByteBuffer buf = ByteBuffer.allocate(MediaBlockSize);
+
+        public StreamingServer(int port) throws UnknownHostException {
+            super(new InetSocketAddress(port));
+        }
+
+        public boolean sendMedia(byte[] data, int length) {
+            boolean ret = false;
+
+            if (inStreaming == true) {
+                buf.clear();
+                buf.put(data, 0, length);
+                buf.flip();
+            }
+
+            if (inStreaming == true) {
+                mediaSocket.send(buf);
+                ret = true;
+            }
+
+            return ret;
+        }
+
+        @Override
+        public void onOpen(WebSocket conn, ClientHandshake handshake) {
+            if (inStreaming == true) {
+                conn.close();
+            } else {
+                resetMediaBuffer();
+                mediaSocket = conn;
+                inStreaming = true;
+            }
+        }
+
+        @Override
+        public void onClose(WebSocket conn, int code, String reason, boolean remote) {
+            if (conn == mediaSocket) {
+                inStreaming = false;
+                mediaSocket = null;
+            }
+        }
+
+        @Override
+        public void onError(WebSocket conn, Exception ex) {
+            if (conn == mediaSocket) {
+                inStreaming = false;
+                mediaSocket = null;
+            }
+        }
+
+        @Override
+        public void onMessage(WebSocket conn, ByteBuffer blob) {
+
+        }
+
+        @Override
+        public void onMessage(WebSocket conn, String message) {
+
+        }
+
     }
 
 }
