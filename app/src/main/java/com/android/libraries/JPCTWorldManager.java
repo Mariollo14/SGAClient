@@ -340,21 +340,23 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
                 Double alti = toRad((double) altitude);
 
 
-                Log.e("isFacedown", facedown + "");
+                //Log.e("isFacedown", facedown + "");
 
 
                 Double x = ray * Math.sin(azim);
                 Double z = ray * Math.cos(alti) * Math.cos(azim);
                 Double y = -1 * ray * Math.cos(azim) * Math.sin(alti);
 
+                /*
                 if (targetID.equals("pirandello10")) {
                     Log.e("id:" + targetID + "XYZ:", x.floatValue() + " " + y.floatValue() + " " + z.floatValue() + " ");
-                    //Log.e("lat:" + myLoc.getLatitude(), "long:" + myLoc.getLongitude());
+                    Log.e("lat:" + myLoc.getLatitude(), "long:" + myLoc.getLongitude());
                     Log.e("myLoc-targ:distTo():", myLoc.distanceTo(target) + "");
                     Log.e("head:", headCam + "");
                     Log.e("BEARING-head:", azimuth + "");
                     Log.e("altitude", altitude + "");
                 }
+                */
                 createPrimitiveCube(targetID, x.floatValue(), y.floatValue(), z.floatValue());
                 //world.getObjectByName(targetID).translate(x,y,z);
             }

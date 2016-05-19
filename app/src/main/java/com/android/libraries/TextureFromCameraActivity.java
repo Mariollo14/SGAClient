@@ -358,6 +358,23 @@ public class TextureFromCameraActivity extends Activity
         updateControls();
         */
 
+
+        //TESTM48 spostato da onResume
+        if ( initWebServer() ) {
+            initAudio();
+            //initCamera();
+        } else {
+            return;
+        }
+
+        streamingHandler = new Handler();
+        streamingHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                doStreaming();
+            }
+        }, StreamingInterval);
+
     }
 
 
@@ -371,9 +388,16 @@ public class TextureFromCameraActivity extends Activity
     public void onStop() {
         super.onStop();
 
-        mySensorFusion.unregisterListeners();
+
+        //TESTM48 spostate da onPause
+        if ( webServer != null)
+            webServer.stop();
+        if ( audioCapture != null)
+            audioCapture.release();
 
     }
+
+
 
 
     @Override
@@ -426,20 +450,7 @@ public class TextureFromCameraActivity extends Activity
             return;
         }
 
-        if ( initWebServer() ) {
-            initAudio();
-            //initCamera();
-        } else {
-            return;
-        }
 
-        streamingHandler = new Handler();
-        streamingHandler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                doStreaming();
-            }
-        }, StreamingInterval);
 
     }
 
@@ -477,10 +488,6 @@ public class TextureFromCameraActivity extends Activity
             topRenderThread = null;
         }
         */
-        if ( webServer != null)
-            webServer.stop();
-        if ( audioCapture != null)
-            audioCapture.release();
 
     }
 
@@ -1527,11 +1534,13 @@ public class TextureFromCameraActivity extends Activity
         alert.show();
     }
 
+    @SuppressWarnings("JniMissingFunction")
     private native void nativeInitMediaEncoder(int width, int height);
-
+    @SuppressWarnings("JniMissingFunction")
     private native void nativeReleaseMediaEncoder(int width, int height);
-
+    @SuppressWarnings("JniMissingFunction")
     private native int nativeDoVideoEncode(byte[] in, byte[] out, int flag);
+    @SuppressWarnings("JniMissingFunction")
     private native int nativeDoAudioEncode(byte[] in, int length, byte[] out);
     static {
         System.loadLibrary("MediaEncoder");
@@ -1672,7 +1681,7 @@ public class TextureFromCameraActivity extends Activity
 
         int picWidth = mCameraPreviewWidth;//cameraView.Width();
         int picHeight = mCameraPreviewHeight;//cameraView.Height();
-        int size = picWidth*picHeight + picWidth*picHeight/2;
+        int size = frame.length; //TESTM48 picWidth*picHeight + picWidth*picHeight/2;
         System.arraycopy(frame, 0, yuvFrame, 0, size);
 
         executor.execute(videoTask);
