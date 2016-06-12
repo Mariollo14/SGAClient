@@ -215,8 +215,12 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
 
 
 
+
     public float rollCam=0,pitchCam=0,headCam=0;
     private boolean facedown = false;
+    //mAzimuthView heading -> Z JPCT
+    //mPitchView -> x JPCT
+    //mRollView -> y JPCT
     public void setRPHCam(float r,float p,float h,boolean fdown){
             facedown=fdown;
             rollCam=r;
@@ -224,6 +228,8 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
             headCam=h;
 
     }
+
+
     @Override
     public void onDrawFrame(GL10 gl) {
 
@@ -236,7 +242,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
 
         //perform lights and transformations to stored object
         manageMovementUpdate();
-        orientateCamera(rollCam, pitchCam, headCam);
+        orientateCamera();
 
         //cube.rotateX(0.1f);
 
@@ -365,56 +371,6 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
     }
 
 
-    /*
-    //R = earth’s radius (mean radius = 6371km)
-    private static final int R = 6371000;//result will be in meters
-    // transform gps-points to the correspending screen-points on the android device
-    public void manageMovementUpdate(){
-        world.removeAllObjects();
-        Location myLoc = gpsLocator.getLocation();
-        if(myLoc!=null)
-            for(String targetID : simulation.getTargetLocation().keySet()){
-                Location target = simulation.getTargetLocation().get(targetID);
-
-                double r = target.getAltitude() + R;
-
-                Double targLat = toRad(target.getLatitude());
-                Double targLon = toRad(target.getLongitude());
-                Double xTarget = r * Math.cos(targLat) * Math.cos(targLon);
-                Double yTarget = r * Math.cos(targLat) * Math.sin(targLon);
-                Double zTarget = r * Math.sin(targLat);
-
-
-                Double myLat = toRad(myLoc.getLatitude());
-                Double myLon = toRad(myLoc.getLongitude());
-                Double xMy = r * Math.cos(myLat) * Math.cos(myLon);
-                Double yMy = r * Math.cos(myLat) * Math.sin(myLon);
-                Double zMy = r * Math.sin(myLat);
-
-                Double x = xTarget - xMy;//-Y
-                Double y = yTarget - yMy;//Z
-                Double z = zTarget - zMy;//X
-
-                Log.d("id:"+targetID+"XYZ:",x.floatValue()+" "+y.floatValue()+" "+z.floatValue()+" ");
-                Log.d("lat:"+myLoc.getLatitude(), "long:"+myLoc.getLongitude());
-                Log.d("myLoc-targ:distTo():",myLoc.distanceTo(target)+"");
-                Log.d("xTarget:"+xTarget," xMy:"+xMy);
-                Log.d("yTarget:"+yTarget," yMy:"+yMy);
-                Log.d("zTarget:" + zTarget, " zMy:" + zMy);
-                Log.d("distance from "+targetID, "myLoc: "+target.distanceTo(myLoc));
-                //createPrimitiveCube(targetID, x.floatValue(), y.floatValue(), z.floatValue());
-                //createPrimitiveCube(targetID, -z.floatValue(), -x.floatValue(), y.floatValue());
-                createPrimitiveCube(targetID, y.floatValue(), -z.floatValue(), x.floatValue());
-                //world.getObjectByName(targetID).translate(x,y,z);
-            }
-
-    }
-    */
-    float[] orMatrix;
-    public void remapCoors(float[] mResult){
-        orMatrix=mResult;
-
-    }
 
 
 
@@ -426,55 +382,11 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         world.getCamera().rotateCameraY(toRad(new Double(grade)).floatValue());
         grade++;
     }
-    //mAzimuthView heading -> Z JPCT
-    //mPitchView -> x JPCT
-    //mRollView -> y JPCT
-    public void orientateCamera(float roll,float pitch,float head){
 
-
-
-        Double r = new Double(-roll);
-        Double p = new Double(90 + pitch);
-        Double h = new Double(head);
-
-
-        Log.d("rolling camera: r:", roll + " p:" + pitch + " h:"+head);
-        //SimpleVector orientationVect = new SimpleVector(x,y,z);
-        /*
-        Camera cam = world.getCamera();
-        cam.getBack().setIdentity();
-        cam.rotateCameraAxis(new SimpleVector(0,1,0),toRad(zD).floatValue());
-        cam.rotateCameraAxis(new SimpleVector(1,0,0), toRad(xD).floatValue());
-        cam.rotateCameraAxis(new SimpleVector(0, 0, 1), toRad(yD).floatValue());
-        */
+    public void orientateCamera(){
 
         Camera cam = world.getCamera();
-
-        //cam.setFovAngle(toRad(45.0).floatValue());
         cam.lookAt(fakeCubeOnZAxis.getTransformedCenter());
-        /*
-        cam.getBack().setIdentity();
-        cam.rotateCameraAxis(new SimpleVector(0, 1, 0), toRad(r).floatValue());
-        //cam.rotateCameraAxis(new SimpleVector(0, 1, 0), toRad(h).floatValue());
-        if(!facedown){
-            cam.rotateCameraAxis(new SimpleVector(1, 0, 0), toRad(p).floatValue());
-            activity.showOrientationVirtualCameraAngle(r.floatValue(),p.floatValue(),h.floatValue());
-        }
-        else {
-            cam.rotateCameraAxis(new SimpleVector(1, 0, 0), -toRad(p).floatValue());
-            activity.showOrientationVirtualCameraAngle(r.floatValue(),-p.floatValue(),h.floatValue());
-        }
-
-        */
-        //cam.rotateCameraAxis(new SimpleVector(0, 0, 1), toRad(h).floatValue());
-
-        //cam.rotateCameraY(toRad(r).floatValue());
-        //cam.rotateCameraX(toRad(p).floatValue());
-        //cam.rotateCameraZ(toRad(h).floatValue());
-
-        //cam.rotateCameraY(r.floatValue());
-        //cam.rotateCameraX(p.floatValue());
-        //cam.rotateCameraZ(h.floatValue());
 
     }
 

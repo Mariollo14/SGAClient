@@ -572,27 +572,17 @@ public class TextureFromCameraActivity extends Activity
     }
 
 
-    //called by SensorFusion
+    /*
+    called by SensorFusion to provide roll pitch and heading values to JPCTWorldManager
+    */
     public void onNewOrientationAnglesComputed(float roll, float pitch, float head, final boolean facedown) {
 
         final float rollA = roll, pitchA = pitch, headA = head;
-
 
         mGLView.queueEvent(new Runnable() {
             @Override
             public void run() {
                 jpctWorldManager.setRPHCam(rollA, pitchA, headA, facedown);
-            }
-        });
-
-    }
-
-    public void onNewOrientationMatrixComputed(final float[] mResult) {
-
-        mGLView.queueEvent(new Runnable() {
-            @Override
-            public void run() {
-                jpctWorldManager.remapCoors(mResult);
             }
         });
 
