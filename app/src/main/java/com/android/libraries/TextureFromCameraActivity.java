@@ -108,17 +108,14 @@ public class TextureFromCameraActivity extends Activity
         implements SurfaceHolder.Callback/*,SeekBar.OnSeekBarChangeListener*/ {
     public static final String TAG = "TextureCameraActivity";/////MainActivity.TAG;
 
-    //permissions request constants
-    /**
-     * Id to identify a camera permission request.
-     */
+    /*
+    The following constants are used to identify permission request by onRequestPermissionResult callback
+    */
+    //Id to identify fine location permission request.
     public static final int REQUEST_FINE_LOC = 0;
-
-    /**
-     * Id to identify a contacts permission request.
-     */
+    //Id to identify coarse location permission request.
     public static final int REQUEST_COARSE_LOC = 1;
-
+    //Id to identify a camera permission request.
     private static final int REQUEST_CAMERA = 2;
 
 
@@ -143,18 +140,15 @@ public class TextureFromCameraActivity extends Activity
     private static SurfaceHolder sSurfaceHolder;
 
     private SurfaceView cameraView = null;
-    //private SurfaceView svOnTop = null;
     private TextView tmptv = null;
     private GLSurfaceView mGLView;
     private boolean gl2 = true;
     private JPCTWorldManager jpctWorldManager = null;
     private SimParameters simulation = null;
 
-
     // Thread that handles rendering and controls the camera.  Started in onResume(),
     // stopped in onPause().
     private RenderThread mRenderThread;
-
 
     // Receives messages from renderer thread.
     private MainHandler mHandler;
@@ -165,10 +159,7 @@ public class TextureFromCameraActivity extends Activity
     private SeekBar mSizeBar;
     private SeekBar mRotateBar;
     */
-
-    // These values are passed to us by the camera/render thread, and displayed in the UI.
-    // We could also just peek at the values in the RenderThread object, but we'd need to
-    // synchronize access carefully.
+    // These values are passed to us by the camera/render thread
     private int mCameraPreviewWidth, mCameraPreviewHeight;
     private float mCameraPreviewFps;
     private int mRectWidth, mRectHeight;
@@ -191,29 +182,18 @@ public class TextureFromCameraActivity extends Activity
     private final int MediaBlockSize = 1024*512;
     private final int EstimatedFrameNumber = 30;
     private final int StreamingInterval = 100;
-
-
     // EYE
     private StreamingServer streamingServer = null;
     private TeaServer webServer = null;
-    //private OverlayView overlayView = null;
-    //private CameraView cameraView = null;
-    private AudioRecord audioCapture = null;
-
     ExecutorService executor = Executors.newFixedThreadPool(3);
     VideoEncodingTask videoTask = new  VideoEncodingTask();
     private ReentrantLock previewLock = new ReentrantLock();
     boolean inProcessing = false;
-
     byte[] yuvFrame = new byte[1920*1280*2];
-
     private static MediaBlock[] mediaBlocks = new MediaBlock[MediaBlockNumber];
     int mediaWriteIndex = 0;
     int mediaReadIndex = 0;
-
     Handler streamingHandler;
-
-
     //EYE class CameraView fragment
     private List<int[]>       supportedFrameRate;
     private List<Camera.Size> supportedSizes;
@@ -224,19 +204,10 @@ public class TextureFromCameraActivity extends Activity
     protected void onCreate(Bundle savedInstanceState) {
 
 
-        this.simulation = new SimParameters();
-
-        /*
-            GPS Sensor
-         */
+        simulation = new SimParameters();
         myLocator = new GPSLocator(this, simulation);
-
-
-        //sensors
         mySensorFusion = new SensorFusion(this);
-
         jpctWorldManager = new JPCTWorldManager(this, simulation, myLocator);
-
 
         super.onCreate(savedInstanceState);
         getWindow().setFormat(PixelFormat.TRANSLUCENT);
@@ -251,12 +222,6 @@ public class TextureFromCameraActivity extends Activity
         SurfaceHolder sh = cameraView.getHolder();
         sh.addCallback(this);
         sh.setFormat(PixelFormat.TRANSLUCENT);
-
-        /*
-        svOnTop = new SurfaceView(this);
-        SurfaceHolder sfOnTopHolder = svOnTop.getHolder();
-        sfOnTopHolder.setFormat(PixelFormat.TRANSLUCENT);
-        */
 
         tmptv = new TextView(this);
         tmptv.setBackgroundColor(PixelFormat.OPAQUE);
@@ -307,36 +272,14 @@ public class TextureFromCameraActivity extends Activity
         rl.addView(cameraView);
         rl.addView(mGLView);
         rl.addView(tmptv);
-        tmptv = new TextView(this);
-
-        /*
-        mario
-        mZoomBar = (SeekBar) findViewById(R.id.tfcZoom_seekbar);
-        mSizeBar = (SeekBar) findViewById(R.id.tfcSize_seekbar);
-        mRotateBar = (SeekBar) findViewById(R.id.tfcRotate_seekbar);
-        mZoomBar.setProgress(DEFAULT_ZOOM_PERCENT);
-        mSizeBar.setProgress(DEFAULT_SIZE_PERCENT);
-        mRotateBar.setProgress(DEFAULT_ROTATE_PERCENT);
-        mZoomBar.setOnSeekBarChangeListener(this);
-        mSizeBar.setOnSeekBarChangeListener(this);
-        mRotateBar.setOnSeekBarChangeListener(this);
-        updateControls();
-        */
-
-
-
 
         //TESTM48 spostato da onResume
-        //Log.e("IPADDRESS",wifiIpAddress(this));
-
         if ( initWebServer() ) {
-
             //M48 initAudio();
             //initCamera();
         } else {
             return;
         }
-
         streamingHandler = new Handler();
         streamingHandler.postDelayed(new Runnable() {
             @Override
@@ -357,16 +300,9 @@ public class TextureFromCameraActivity extends Activity
     @Override
     public void onStop() {
         super.onStop();
-
-
         //TESTM48 spostate da onPause
         if ( webServer != null)
             webServer.stop();
-        /*
-        M48
-        if ( audioCapture != null)
-            audioCapture.release();
-        */
     }
 
 
@@ -380,39 +316,29 @@ public class TextureFromCameraActivity extends Activity
         myLocator.requestLocationUpdate();
         mySensorFusion.initListeners();
         //try catch mario
-        try {
+        //try {
             mRenderThread = new RenderThread(mHandler);
             mRenderThread.setName("TexFromCam Render");
             mRenderThread.start();
             mRenderThread.waitUntilReady();
 
             RenderHandler rh = mRenderThread.getHandler();
-
-
-            /*
-            topRenderThread = new TopTextureViewRenderThread(mHandler, svOnTop, this);
-            topRenderThread.setName("TopSurfView Render");
-            topRenderThread.start();
-            topRenderThread.waitUntilReady();
-            */
-
             /*
             mario
             rh.sendZoomValue(mZoomBar.getProgress());
             rh.sendSizeValue(mSizeBar.getProgress());
             rh.sendRotateValue(mRotateBar.getProgress());
             */
-
             if (sSurfaceHolder != null) {
                 rh.sendSurfaceAvailable(sSurfaceHolder, false);
             } else {
                 Log.d(TAG, "No previous surface");
             }
 
-        } catch (Exception e) {
+        //} catch (Exception e) {
             // Show toast to the user
-            Toast.makeText(getApplicationContext(), "Data lost due to excess use of other apps", Toast.LENGTH_LONG).show();
-        }
+            //Toast.makeText(getApplicationContext(), "Data lost due to excess use of other apps", Toast.LENGTH_LONG).show();
+        //}
 
         try {
             streamingServer = new StreamingServer(StreamingPort);
@@ -424,8 +350,6 @@ public class TextureFromCameraActivity extends Activity
             return;
         }
 
-
-
     }
 
     @Override
@@ -433,9 +357,8 @@ public class TextureFromCameraActivity extends Activity
 
         mGLView.onPause();
         myLocator.stopUsingGPS();
-        super.onPause();
-
         mySensorFusion.unregisterListeners();
+        super.onPause();
 
         if (mRenderThread != null) {
             RenderHandler rh = mRenderThread.getHandler();
@@ -448,21 +371,6 @@ public class TextureFromCameraActivity extends Activity
             }
             mRenderThread = null;
         }
-
-        /*
-        if (topRenderThread != null) {
-            TopTextureViewRenderHandler topTVHandler = topRenderThread.getHandler();
-            topTVHandler.sendShutdown();
-            try {
-                topRenderThread.join();
-            } catch (InterruptedException ie) {
-                // not expected
-                throw new RuntimeException("join was interrupted", ie);
-            }
-            topRenderThread = null;
-        }
-        */
-
     }
 
 
@@ -492,8 +400,7 @@ public class TextureFromCameraActivity extends Activity
                 if (grantResults.length > 0
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
 
-                    // permission was granted, yay! Do the
-                    // contacts-related task you need to do.
+                    // permission was granted, yay!
 
                 } else {
 
@@ -508,8 +415,7 @@ public class TextureFromCameraActivity extends Activity
                 if (grantResults.length > 0
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
 
-                    // permission was granted, yay! Do the
-                    // contacts-related task you need to do.
+                    // permission was granted, yay!
 
                 } else {
 
@@ -520,7 +426,6 @@ public class TextureFromCameraActivity extends Activity
                 //return;
             }
             break;
-
 
             // other 'case' lines to check for other
             // permissions this app might request
@@ -533,7 +438,6 @@ public class TextureFromCameraActivity extends Activity
         if (sSurfaceHolder != null) {
             throw new RuntimeException("sSurfaceHolder is already set");
         }
-
         sSurfaceHolder = holder;
 
         if (mRenderThread != null) {
@@ -557,8 +461,7 @@ public class TextureFromCameraActivity extends Activity
 
     @Override   // SurfaceHolder.Callback
     public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-        Log.e(TAG, "surfaceChanged fmt=" + format + " size=" + width + "x" + height +
-                " holder=" + holder);
+        Log.e(TAG, "surfaceChanged format=" + format + " w=" + width + " h=" + height);
 
         if (mRenderThread != null) {
             RenderHandler rh = mRenderThread.getHandler();
@@ -614,8 +517,6 @@ public class TextureFromCameraActivity extends Activity
         rh.sendRedraw();
     }
 
-
-
     @Override   // SeekBar.OnSeekBarChangeListener
     public void onStartTrackingTouch(SeekBar seekBar) {}
     @Override   // SeekBar.OnSeekBarChangeListener
@@ -628,36 +529,23 @@ public class TextureFromCameraActivity extends Activity
      */
     public boolean onTouchEvent(MotionEvent e) {
 
-        /*
+
         if (e.getAction() == MotionEvent.ACTION_DOWN) {
-            xpos = e.getX();
-            ypos = e.getY();
+            //xpos = e.getX();
+            //ypos = e.getY();
             return true;
         }
 
         if (e.getAction() == MotionEvent.ACTION_UP) {
-            xpos = -1;
-            ypos = -1;
-            jpctWorldManager.touchTurn = 0;
-            jpctWorldManager.touchTurnUp = 0;
+            //xpos = -1;
+            //ypos = -1;
             return true;
         }
 
         if (e.getAction() == MotionEvent.ACTION_MOVE) {
-            float xd = e.getX() - xpos;
-            float yd = e.getY() - ypos;
-
-            xpos = e.getX();
-            ypos = e.getY();
-
-            jpctWorldManager.touchTurn = xd / -100f;
-            jpctWorldManager.touchTurnUp = yd / -100f;
             return true;
         }
-        */
         return super.onTouchEvent(e);
-
-
         /*
         mario
         float x = e.getX();
@@ -681,8 +569,6 @@ public class TextureFromCameraActivity extends Activity
         }
         return true;
         */
-
-
     }
 
 
