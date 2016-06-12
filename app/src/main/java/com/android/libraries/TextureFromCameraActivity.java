@@ -117,6 +117,8 @@ public class TextureFromCameraActivity extends Activity
     public static final int REQUEST_COARSE_LOC = 1;
     //Id to identify a camera permission request.
     private static final int REQUEST_CAMERA = 2;
+    //Id to identify a camera permission request.
+    private static final int REQUEST_INTERNET = 3;
 
 
 
@@ -168,7 +170,6 @@ public class TextureFromCameraActivity extends Activity
 
 
     private Double xG, yG, zG;
-    private Double vCamRoll, vCamPitch, vCamHead;
     private GPSLocator myLocator;
     private SensorFusion mySensorFusion;
 
@@ -273,6 +274,8 @@ public class TextureFromCameraActivity extends Activity
         rl.addView(mGLView);
         rl.addView(tmptv);
 
+        requestInternetPermission();
+
         //TESTM48 spostato da onResume
         if ( initWebServer() ) {
             //M48 initAudio();
@@ -288,6 +291,8 @@ public class TextureFromCameraActivity extends Activity
             }
         }, StreamingInterval);
 
+
+        requestCameraPermission();
     }
 
 
@@ -387,9 +392,11 @@ public class TextureFromCameraActivity extends Activity
                     // contacts-related task you need to do.
 
                 } else {
-
+                    Log.e(TAG,"Fine Location Permission denied. Handle it at onRequestPermissionResult");
                     // permission denied, boo! Disable the
                     // functionality that depends on this permission.
+                    onPause();
+                    finish();
 
                 }
                 //return;
@@ -403,9 +410,11 @@ public class TextureFromCameraActivity extends Activity
                     // permission was granted, yay!
 
                 } else {
-
+                    Log.e(TAG,"Coarse Location Permission denied. Handle it at onRequestPermissionResult");
                     // permission denied, boo! Disable the
                     // functionality that depends on this permission.
+                    onPause();
+                    finish();
                 }
                 //return;
             }
@@ -422,6 +431,26 @@ public class TextureFromCameraActivity extends Activity
                     Log.e(TAG,"Camera Permission denied. Handle it at onRequestPermissionResult");
                     // permission denied, boo! Disable the
                     // functionality that depends on this permission.
+                    onPause();
+                    finish();
+                }
+                //return;
+            }
+            break;
+            case REQUEST_INTERNET: {
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+                    // permission was granted, yay!
+
+                } else {
+
+                    Log.e(TAG,"INTERNET Permission denied. Handle it at onRequestPermissionResult");
+                    // permission denied, boo! Disable the
+                    // functionality that depends on this permission.
+                    onPause();
+                    finish();
                 }
                 //return;
             }
@@ -431,6 +460,73 @@ public class TextureFromCameraActivity extends Activity
             // permissions this app might request
         }
     }
+
+
+    private void requestCameraPermission(){
+
+        // Here, thisActivity is the current activity
+        if (ContextCompat.checkSelfPermission(TextureFromCameraActivity.this,
+                Manifest.permission.CAMERA)
+                != PackageManager.PERMISSION_GRANTED) {
+
+            // Should we show an explanation?
+            if (ActivityCompat.shouldShowRequestPermissionRationale(TextureFromCameraActivity.this,
+                    Manifest.permission.CAMERA)) {
+
+                // Show an expanation to the user *asynchronously* -- don't block
+                // this thread waiting for the user's response! After the user
+                // sees the explanation, try again to request the permission.
+
+            } else {
+
+                // No explanation needed, we can request the permission.
+
+                ActivityCompat.requestPermissions(TextureFromCameraActivity.this,
+                        new String[]{Manifest.permission.CAMERA},
+                            /*MY_PERMISSIONS_REQUEST_READ_CONTACTS*/
+                        REQUEST_CAMERA);
+
+                // MY_PERMISSIONS_REQUEST_READ_CONTACTS is an
+                // app-defined int constant. The callback method gets the
+                // result of the request.
+            }
+        }
+
+    }
+
+
+    private void requestInternetPermission(){
+
+        // Here, thisActivity is the current activity
+        if (ContextCompat.checkSelfPermission(TextureFromCameraActivity.this,
+                Manifest.permission.INTERNET)
+                != PackageManager.PERMISSION_GRANTED) {
+
+            // Should we show an explanation?
+            if (ActivityCompat.shouldShowRequestPermissionRationale(TextureFromCameraActivity.this,
+                    Manifest.permission.INTERNET)) {
+
+                // Show an expanation to the user *asynchronously* -- don't block
+                // this thread waiting for the user's response! After the user
+                // sees the explanation, try again to request the permission.
+
+            } else {
+
+                // No explanation needed, we can request the permission.
+
+                ActivityCompat.requestPermissions(TextureFromCameraActivity.this,
+                        new String[]{Manifest.permission.INTERNET},
+                            /*MY_PERMISSIONS_REQUEST_READ_CONTACTS*/
+                        REQUEST_INTERNET);
+
+                // MY_PERMISSIONS_REQUEST_READ_CONTACTS is an
+                // app-defined int constant. The callback method gets the
+                // result of the request.
+            }
+        }
+
+    }
+
 
     @Override   // SurfaceHolder.Callback
     public void surfaceCreated(SurfaceHolder holder) {
@@ -589,15 +685,12 @@ public class TextureFromCameraActivity extends Activity
     }
 
 
+    /*
+        Tell the render thread to update the text view showing the values of Roll, Pitch and Heading
+    */
     public void showOrientationFusedAngle(double f0, double f1, double f2) {
 
         this.mHandler.sendTempMessageParams(f0, f1, f2);
-
-    }
-
-    public void showOrientationVirtualCameraAngle(float roll, float pitch, float head) {
-
-        this.mHandler.sendVCamOrientation(roll, pitch, head);
 
     }
 
@@ -642,7 +735,6 @@ public class TextureFromCameraActivity extends Activity
         private static final int MSG_SEND_ZOOM_AREA = 3;
         private static final int MSG_SEND_ROTATE_DEG = 4;
         private static final int MSG_SET_TEMP_TV = 5;
-        private static final int MSG_SET_VCAM = 6;
 
 
         private WeakReference<TextureFromCameraActivity> mWeakActivity;
@@ -655,9 +747,6 @@ public class TextureFromCameraActivity extends Activity
             sendMessage(obtainMessage(MSG_SET_TEMP_TV, 0, 0, new Coordinates(f0, f1, f2)));
         }
 
-        public void sendVCamOrientation(float roll, float pitch, float head) {
-            sendMessage(obtainMessage(MSG_SET_VCAM, 0, 0, new Coordinates(roll, pitch, head)));
-        }
 
         /**
          * Sends the updated camera parameters to the main thread.
@@ -742,14 +831,6 @@ public class TextureFromCameraActivity extends Activity
                     activity.xG = coors.getX();
                     activity.yG = coors.getY();
                     activity.zG = coors.getZ();
-                    activity.updateControls();
-                    break;
-                }
-                case MSG_SET_VCAM: {
-                    Coordinates coors = (Coordinates) msg.obj;
-                    activity.vCamRoll = coors.getX();
-                    activity.vCamPitch = coors.getY();
-                    activity.vCamHead = coors.getZ();
                     activity.updateControls();
                     break;
                 }
@@ -904,14 +985,6 @@ public class TextureFromCameraActivity extends Activity
             Log.e(TAG,"camW:"+cameraView.getWidth()+"camH:"+cameraView.getHeight());
             nativeInitMediaEncoder(cameraView.getWidth(), cameraView.getHeight());
 
-            /*
-            M48
-            if ( audioCapture != null) {
-                audioCapture.startRecording();
-                AudioEncoder audioEncoder = new AudioEncoder();
-                audioEncoder.start();
-            }
-            */
             mCamera.startPreview();
 
         }
@@ -945,6 +1018,7 @@ public class TextureFromCameraActivity extends Activity
 
             Camera.Parameters p = mCamera.getParameters();
             p.setPreviewSize(procSize_.width, procSize_.height);
+            Log.e("Preview Size set to:","w:"+procSize_.width+" h:"+procSize_.height);
             p.setPreviewFormat(ImageFormat.NV21);
             p.setPreviewFpsRange(targetMaxFrameRate, targetMinFrameRate);
             mCamera.setParameters(p);
@@ -1118,38 +1192,6 @@ public class TextureFromCameraActivity extends Activity
         }
 
 
-        private void requestCameraPermission(){
-
-            // Here, thisActivity is the current activity
-            if (ContextCompat.checkSelfPermission(TextureFromCameraActivity.this,
-                    Manifest.permission.CAMERA)
-                    != PackageManager.PERMISSION_GRANTED) {
-
-                // Should we show an explanation?
-                if (ActivityCompat.shouldShowRequestPermissionRationale(TextureFromCameraActivity.this,
-                        Manifest.permission.CAMERA)) {
-
-                    // Show an expanation to the user *asynchronously* -- don't block
-                    // this thread waiting for the user's response! After the user
-                    // sees the explanation, try again to request the permission.
-
-                } else {
-
-                    // No explanation needed, we can request the permission.
-
-                    ActivityCompat.requestPermissions(TextureFromCameraActivity.this,
-                            new String[]{Manifest.permission.CAMERA},
-                            /*MY_PERMISSIONS_REQUEST_READ_CONTACTS*/
-                            REQUEST_CAMERA);
-
-                    // MY_PERMISSIONS_REQUEST_READ_CONTACTS is an
-                    // app-defined int constant. The callback method gets the
-                    // result of the request.
-                }
-            }
-
-        }
-
         /**
          * Opens a camera, and attempts to establish preview mode at the specified width
          * and height with a fixed frame rate.
@@ -1158,7 +1200,6 @@ public class TextureFromCameraActivity extends Activity
          */
         private void openCamera(int desiredWidth, int desiredHeight, int desiredFps) {
 
-            requestCameraPermission();
 
             if (mCamera != null) {
                 throw new RuntimeException("camera already initialized");
@@ -1458,7 +1499,6 @@ public class TextureFromCameraActivity extends Activity
         super.onBackPressed();
     }
 
-
     //
     //  Internal help functions
     //
@@ -1489,41 +1529,6 @@ public class TextureFromCameraActivity extends Activity
             return false;
         }
     }
-
-
-    /*
-    private void initCamera() {
-        SurfaceView cameraSurface = (SurfaceView)findViewById(R.id.surface_camera);
-        cameraView = new CameraView(cameraSurface);
-        cameraView.setCameraReadyCallback(this);
-
-        overlayView = (OverlayView)findViewById(R.id.surface_overlay);
-        //overlayView_.setOnTouchListener(this);
-        //overlayView_.setUpdateDoneCallback(this);
-    }
-    */
-
-    /*
-    M48
-    private void initAudio() {
-        int minBufferSize = AudioRecord.getMinBufferSize(16000, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
-        int targetSize = 16000 * 2;      // 1 seconds buffer size
-        if (targetSize < minBufferSize) {
-            targetSize = minBufferSize;
-        }
-        if (audioCapture == null) {
-            try {
-                audioCapture = new AudioRecord(MediaRecorder.AudioSource.MIC,
-                        8000,
-                        AudioFormat.CHANNEL_IN_MONO,
-                        AudioFormat.ENCODING_PCM_16BIT,
-                        targetSize);
-            } catch (IllegalArgumentException	 e) {
-                audioCapture = null;
-            }
-        }
-    }
-    */
 
 
     private void doStreaming () {
@@ -1594,7 +1599,7 @@ public class TextureFromCameraActivity extends Activity
 
         int picWidth = mCameraPreviewWidth;//cameraView.Width();
         int picHeight = mCameraPreviewHeight;//cameraView.Height();
-
+        //Log.e("doVideoEncode","picWidth:"+picWidth+" picHeight:"+picHeight);
         int size = frame.length; //TESTM48 picWidth*picHeight + picWidth*picHeight/2;
         System.arraycopy(frame, 0, yuvFrame, 0, size);
 
@@ -1690,59 +1695,6 @@ public class TextureFromCameraActivity extends Activity
         }
     };
 
-    //EYE
-    /*
-    private class AudioEncoder extends Thread {
-        private byte[] audioPCM = new byte[1024*32];
-        private byte[] audioPacket = new byte[1024*1024];
-        private byte[] audioHeader = new byte[8];
-
-        int packageSize = 16000;
-
-        public AudioEncoder () {
-            audioHeader[0] = (byte)0x19;
-            audioHeader[1] = (byte)0x82;
-        }
-
-        @Override
-        public void run() {
-            while(true) {
-                int millis = (int)(System.currentTimeMillis() % 65535);
-
-                int ret = audioCapture.read(audioPCM, 0, packageSize);
-                if ( ret == AudioRecord.ERROR_INVALID_OPERATION ||
-                        ret == AudioRecord.ERROR_BAD_VALUE) {
-                    break;
-                }
-
-                ret = nativeDoAudioEncode(audioPCM, ret, audioPacket);
-                if(ret <= 0) {
-                    break;
-                }
-
-                // timestamp
-                audioHeader[2] = (byte)(millis & 0xFF);
-                audioHeader[3] = (byte)((millis>>8) & 0xFF);
-                // length
-                audioHeader[4] = (byte)(ret & 0xFF);
-                audioHeader[5] = (byte)((ret>>8) & 0xFF);
-                audioHeader[6] = (byte)((ret>>16) & 0xFF);
-                audioHeader[7] = (byte)((ret>>24) & 0xFF);
-
-                synchronized (TextureFromCameraActivity.this) {
-                    MediaBlock currentBlock = mediaBlocks[ mediaWriteIndex];
-                    if ( currentBlock.flag == 0) {
-                        currentBlock.write( audioHeader, 8);
-                        ret = currentBlock.write( audioPacket, ret);
-                        if ( ret == 0) {
-                            Log.d(TAG, ">>>>>>> lost audio in Java>>>");
-                        }
-                    }
-                }
-            }
-        }
-    }
-    */
 
     //EYE
     private void resetMediaBuffer() {
@@ -1791,11 +1743,8 @@ public class TextureFromCameraActivity extends Activity
 
         @Override
         public void onOpen(WebSocket conn, ClientHandshake handshake) {
-            //makeToast("onOpen:" + conn.getRemoteSocketAddress().toString());
 
-            Log.e("instreaming",""+inStreaming);
             if (inStreaming == true) {
-                Log.e("instreaming","already true, closing connection");
                 conn.close();
             } else {
                 Log.e("onOpen:", conn.getRemoteSocketAddress().toString());
