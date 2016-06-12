@@ -1,19 +1,3 @@
-/*
- * Copyright 2014 Google Inc. All rights reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package com.android.libraries;
 
 import android.Manifest;
@@ -23,24 +7,13 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.ImageFormat;
-import android.graphics.Paint;
 import android.graphics.PixelFormat;
 import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
-import android.location.Address;
-import android.location.Geocoder;
-import android.location.Location;
-import android.location.LocationListener;
-import android.location.LocationManager;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
-import android.net.Uri;
 import android.net.wifi.WifiManager;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
@@ -50,21 +23,17 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.provider.Settings;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
-import android.view.View;
 import android.view.WindowManager;
-import android.widget.AbsListView;
 import android.widget.RelativeLayout;
-import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
-
-import android.view.ViewGroup.LayoutParams;
 
 import com.android.libraries.gles.Drawable2d;
 import com.android.libraries.gles.EglCore;
@@ -72,7 +41,6 @@ import com.android.libraries.gles.GlUtil;
 import com.android.libraries.gles.Sprite2d;
 import com.android.libraries.gles.Texture2dProgram;
 import com.android.libraries.gles.WindowSurface;
-import com.threed.jpct.RGBColor;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -84,22 +52,12 @@ import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.List;
-import java.util.Locale;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.locks.ReentrantLock;
 
-
-//sensors management
-import android.hardware.Sensor;
-import android.hardware.SensorManager;
-import android.hardware.SensorEvent;
-import android.hardware.SensorEventListener;
-
-import android.hardware.Camera;
 import android.hardware.Camera.PreviewCallback;
-import android.hardware.Camera.PictureCallback;
 
 import org.java_websocket.WebSocket;
 import org.java_websocket.handshake.ClientHandshake;
@@ -150,6 +108,21 @@ public class TextureFromCameraActivity extends Activity
         implements SurfaceHolder.Callback/*,SeekBar.OnSeekBarChangeListener*/ {
     public static final String TAG = "TextureCameraActivity";/////MainActivity.TAG;
 
+    //permissions request constants
+    /**
+     * Id to identify a camera permission request.
+     */
+    public static final int REQUEST_FINE_LOC = 0;
+
+    /**
+     * Id to identify a contacts permission request.
+     */
+    public static final int REQUEST_COARSE_LOC = 1;
+
+    private static final int REQUEST_CAMERA = 2;
+
+
+
     private static final int DEFAULT_ZOOM_PERCENT = 0;      // 0-100
     private static final int DEFAULT_SIZE_PERCENT = 100;     // 0-100
     private static final int DEFAULT_ROTATE_PERCENT = 0;    // 0-100
@@ -160,15 +133,7 @@ public class TextureFromCameraActivity extends Activity
     private static final int REQ_CAMERA_FPS = 30;
 
 
-    /**
-     * Id to identify a camera permission request.
-     */
-    public static final int REQUEST_FINE_LOC = 0;
 
-    /**
-     * Id to identify a contacts permission request.
-     */
-    public static final int REQUEST_COARSE_LOC = 1;
 
     // The holder for our SurfaceView.  The Surface can outlive the Activity (e.g. when
     // the screen is turned off and back on with the power button).
@@ -359,9 +324,14 @@ public class TextureFromCameraActivity extends Activity
         */
 
 
+
+
         //TESTM48 spostato da onResume
+        //Log.e("IPADDRESS",wifiIpAddress(this));
+
         if ( initWebServer() ) {
-            initAudio();
+
+            //M48 initAudio();
             //initCamera();
         } else {
             return;
@@ -392,9 +362,11 @@ public class TextureFromCameraActivity extends Activity
         //TESTM48 spostate da onPause
         if ( webServer != null)
             webServer.stop();
+        /*
+        M48
         if ( audioCapture != null)
             audioCapture.release();
-
+        */
     }
 
 
@@ -432,7 +404,6 @@ public class TextureFromCameraActivity extends Activity
             */
 
             if (sSurfaceHolder != null) {
-                Log.d(TAG, "Sending previous surface");
                 rh.sendSurfaceAvailable(sSurfaceHolder, false);
             } else {
                 Log.d(TAG, "No previous surface");
@@ -446,6 +417,9 @@ public class TextureFromCameraActivity extends Activity
         try {
             streamingServer = new StreamingServer(StreamingPort);
             streamingServer.start();
+            Log.e("Server Started:", streamingServer.getAddress().getHostString());
+
+
         } catch (UnknownHostException e) {
             return;
         }
@@ -456,7 +430,7 @@ public class TextureFromCameraActivity extends Activity
 
     @Override
     protected void onPause() {
-        Log.d(TAG, "onPause BEGIN");
+
         mGLView.onPause();
         myLocator.stopUsingGPS();
         super.onPause();
@@ -528,6 +502,24 @@ public class TextureFromCameraActivity extends Activity
                 }
                 //return;
             }
+            break;
+            case REQUEST_CAMERA: {
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+                    // permission was granted, yay! Do the
+                    // contacts-related task you need to do.
+
+                } else {
+
+                    Log.e(TAG,"Camera Permission denied. Handle it at onRequestPermissionResult");
+                    // permission denied, boo! Disable the
+                    // functionality that depends on this permission.
+                }
+                //return;
+            }
+            break;
 
 
             // other 'case' lines to check for other
@@ -537,7 +529,7 @@ public class TextureFromCameraActivity extends Activity
 
     @Override   // SurfaceHolder.Callback
     public void surfaceCreated(SurfaceHolder holder) {
-        Log.d(TAG, "surfaceCreated holder=" + holder + " (static=" + sSurfaceHolder + ")");
+
         if (sSurfaceHolder != null) {
             throw new RuntimeException("sSurfaceHolder is already set");
         }
@@ -557,7 +549,7 @@ public class TextureFromCameraActivity extends Activity
             // unpaused, but we track it anyway.  If the activity is un-paused and we start
             // the RenderThread, the SurfaceHolder will be passed in right after the thread
             // is created.
-            Log.d(TAG, "render thread not running");
+            Log.e(TAG, "render thread not running");
         }
 
 
@@ -565,14 +557,14 @@ public class TextureFromCameraActivity extends Activity
 
     @Override   // SurfaceHolder.Callback
     public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-        Log.d(TAG, "surfaceChanged fmt=" + format + " size=" + width + "x" + height +
+        Log.e(TAG, "surfaceChanged fmt=" + format + " size=" + width + "x" + height +
                 " holder=" + holder);
 
         if (mRenderThread != null) {
             RenderHandler rh = mRenderThread.getHandler();
             rh.sendSurfaceChanged(format, width, height);
         } else {
-            Log.d(TAG, "Ignoring surfaceChanged");
+            Log.e(TAG, "Ignoring surfaceChanged");
             return;
         }
     }
@@ -584,7 +576,7 @@ public class TextureFromCameraActivity extends Activity
             RenderHandler rh = mRenderThread.getHandler();
             rh.sendSurfaceDestroyed();
         }
-        Log.d(TAG, "surfaceDestroyed holder=" + holder);
+
         sSurfaceHolder = null;
     }
 
@@ -834,7 +826,6 @@ public class TextureFromCameraActivity extends Activity
         public void handleMessage(Message msg) {
             TextureFromCameraActivity activity = mWeakActivity.get();
             if (activity == null) {
-                Log.d(TAG, "Got message for dead activity");
                 return;
             }
 
@@ -962,7 +953,7 @@ public class TextureFromCameraActivity extends Activity
 
             Looper.loop();
 
-            Log.d(TAG, "looper quit");
+            Log.e(TAG, "looper quit");
             releaseCamera();
             releaseGl();
             mEglCore.release();
@@ -991,7 +982,6 @@ public class TextureFromCameraActivity extends Activity
          * Shuts everything down.
          */
         private void shutdown() {
-            Log.d(TAG, "shutdown");
             Looper.myLooper().quit();
         }
 
@@ -1025,6 +1015,7 @@ public class TextureFromCameraActivity extends Activity
                 // bit of reallocating if a surface-changed message arrives.
                 mWindowSurfaceWidth = mWindowSurface.getWidth();
                 mWindowSurfaceHeight = mWindowSurface.getHeight();
+                Log.e(TAG, "camW:"+ mWindowSurfaceWidth+" camH:"+ mWindowSurfaceHeight);
                 finishSurfaceSetup();
             }
 
@@ -1034,12 +1025,17 @@ public class TextureFromCameraActivity extends Activity
             //onCameraReady fragment
             mCamera.stopPreview();
             setupCamera(PictureWidth, PictureHeight, 4, 25.0, previewCb);
+            Log.e(TAG,"camW:"+cameraView.getWidth()+"camH:"+cameraView.getHeight());
             nativeInitMediaEncoder(cameraView.getWidth(), cameraView.getHeight());
+
+            /*
+            M48
             if ( audioCapture != null) {
                 audioCapture.startRecording();
                 AudioEncoder audioEncoder = new AudioEncoder();
                 audioEncoder.start();
             }
+            */
             mCamera.startPreview();
 
         }
@@ -1118,7 +1114,7 @@ public class TextureFromCameraActivity extends Activity
          * be called.
          */
         private void surfaceChanged(int width, int height) {
-            Log.d(TAG, "RenderThread surfaceChanged " + width + "x" + height);
+            Log.e(TAG, "RenderThread surfaceChanged w:" + width + " h:" + height);
 
             mWindowSurfaceWidth = width;
             mWindowSurfaceHeight = height;
@@ -1143,7 +1139,7 @@ public class TextureFromCameraActivity extends Activity
         private void finishSurfaceSetup() {
             int width = mWindowSurfaceWidth;
             int height = mWindowSurfaceHeight;
-            Log.d(TAG, "finishSurfaceSetup size=" + width + "x" + height +
+            Log.e(TAG, "finishSurfaceSetup size=" + width + "x" + height +
                     " camera=" + mCameraPreviewWidth + "x" + mCameraPreviewHeight);
 
             // Use full window.
@@ -1159,7 +1155,6 @@ public class TextureFromCameraActivity extends Activity
             updateGeometry();
 
             // Ready to go, start the camera.
-            Log.d(TAG, "starting camera preview");
             try {
                 mCamera.setPreviewTexture(mCameraTexture);
             } catch (IOException ioe) {
@@ -1247,6 +1242,38 @@ public class TextureFromCameraActivity extends Activity
         }
 
 
+        private void requestCameraPermission(){
+
+            // Here, thisActivity is the current activity
+            if (ContextCompat.checkSelfPermission(TextureFromCameraActivity.this,
+                    Manifest.permission.CAMERA)
+                    != PackageManager.PERMISSION_GRANTED) {
+
+                // Should we show an explanation?
+                if (ActivityCompat.shouldShowRequestPermissionRationale(TextureFromCameraActivity.this,
+                        Manifest.permission.CAMERA)) {
+
+                    // Show an expanation to the user *asynchronously* -- don't block
+                    // this thread waiting for the user's response! After the user
+                    // sees the explanation, try again to request the permission.
+
+                } else {
+
+                    // No explanation needed, we can request the permission.
+
+                    ActivityCompat.requestPermissions(TextureFromCameraActivity.this,
+                            new String[]{Manifest.permission.CAMERA},
+                            /*MY_PERMISSIONS_REQUEST_READ_CONTACTS*/
+                            REQUEST_CAMERA);
+
+                    // MY_PERMISSIONS_REQUEST_READ_CONTACTS is an
+                    // app-defined int constant. The callback method gets the
+                    // result of the request.
+                }
+            }
+
+        }
+
         /**
          * Opens a camera, and attempts to establish preview mode at the specified width
          * and height with a fixed frame rate.
@@ -1254,6 +1281,9 @@ public class TextureFromCameraActivity extends Activity
          * Sets mCameraPreviewWidth / mCameraPreviewHeight.
          */
         private void openCamera(int desiredWidth, int desiredHeight, int desiredFps) {
+
+            requestCameraPermission();
+
             if (mCamera != null) {
                 throw new RuntimeException("camera already initialized");
             }
@@ -1559,6 +1589,7 @@ public class TextureFromCameraActivity extends Activity
     private boolean initWebServer() {
 
         String ipAddr = wifiIpAddress(this);
+
         if ( ipAddr != null ) {
             try{
                 webServer = new TeaServer(8080, this);
@@ -1570,6 +1601,7 @@ public class TextureFromCameraActivity extends Activity
 
         TextView tv = (TextView)findViewById(R.id.tv_message);
         if ( webServer != null) {
+            Log.e("IPADDRESS:", getString(R.string.msg_access_local) + " http://" + ipAddr  + ":8080");
             tv.setText( getString(R.string.msg_access_local) + " http://" + ipAddr  + ":8080" );
             return true;
         } else {
@@ -1595,6 +1627,8 @@ public class TextureFromCameraActivity extends Activity
     }
     */
 
+    /*
+    M48
     private void initAudio() {
         int minBufferSize = AudioRecord.getMinBufferSize(16000, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
         int targetSize = 16000 * 2;      // 1 seconds buffer size
@@ -1613,11 +1647,14 @@ public class TextureFromCameraActivity extends Activity
             }
         }
     }
+    */
+
 
     private void doStreaming () {
         synchronized(TextureFromCameraActivity.this) {
 
             MediaBlock targetBlock = mediaBlocks[mediaReadIndex];
+            if(targetBlock==null)Log.e(TAG,"M48, null mediablock");
             if ( targetBlock.flag == 1) {
                 streamingServer.sendMedia( targetBlock.data(), targetBlock.length());
                 targetBlock.reset();
@@ -1681,6 +1718,7 @@ public class TextureFromCameraActivity extends Activity
 
         int picWidth = mCameraPreviewWidth;//cameraView.Width();
         int picHeight = mCameraPreviewHeight;//cameraView.Height();
+
         int size = frame.length; //TESTM48 picWidth*picHeight + picWidth*picHeight/2;
         System.arraycopy(frame, 0, yuvFrame, 0, size);
 
@@ -1777,6 +1815,7 @@ public class TextureFromCameraActivity extends Activity
     };
 
     //EYE
+    /*
     private class AudioEncoder extends Thread {
         private byte[] audioPCM = new byte[1024*32];
         private byte[] audioPacket = new byte[1024*1024];
@@ -1827,7 +1866,7 @@ public class TextureFromCameraActivity extends Activity
             }
         }
     }
-
+    */
 
     //EYE
     private void resetMediaBuffer() {
@@ -1842,6 +1881,7 @@ public class TextureFromCameraActivity extends Activity
 
     //EYE
     private class StreamingServer extends WebSocketServer {
+
         private WebSocket mediaSocket = null;
         public boolean inStreaming = false;
         private final int MediaBlockSize = 1024 * 512;
@@ -1849,9 +1889,11 @@ public class TextureFromCameraActivity extends Activity
 
         public StreamingServer(int port) throws UnknownHostException {
             super(new InetSocketAddress(port));
+
         }
 
         public boolean sendMedia(byte[] data, int length) {
+
             boolean ret = false;
 
             if (inStreaming == true) {
@@ -1863,6 +1905,9 @@ public class TextureFromCameraActivity extends Activity
             if (inStreaming == true) {
                 mediaSocket.send(buf);
                 ret = true;
+                Log.e("sendMedia:", "length:"+length);
+                //mediaSocket.send("camW:"+mCameraPreviewWidth+" camH:"+mCameraPreviewHeight);
+
             }
 
             return ret;
@@ -1870,9 +1915,14 @@ public class TextureFromCameraActivity extends Activity
 
         @Override
         public void onOpen(WebSocket conn, ClientHandshake handshake) {
+            //makeToast("onOpen:" + conn.getRemoteSocketAddress().toString());
+
+            Log.e("instreaming",""+inStreaming);
             if (inStreaming == true) {
+                Log.e("instreaming","already true, closing connection");
                 conn.close();
             } else {
+                Log.e("onOpen:", conn.getRemoteSocketAddress().toString());
                 resetMediaBuffer();
                 mediaSocket = conn;
                 inStreaming = true;
@@ -1881,6 +1931,7 @@ public class TextureFromCameraActivity extends Activity
 
         @Override
         public void onClose(WebSocket conn, int code, String reason, boolean remote) {
+            Log.e("onClose:", conn.getRemoteSocketAddress().toString());
             if (conn == mediaSocket) {
                 inStreaming = false;
                 mediaSocket = null;
@@ -1897,14 +1948,27 @@ public class TextureFromCameraActivity extends Activity
 
         @Override
         public void onMessage(WebSocket conn, ByteBuffer blob) {
-
+            Log.e("onMessage:", "bytebuffer");
         }
 
         @Override
         public void onMessage(WebSocket conn, String message) {
 
+            Log.e("received",message);
+            conn.send("I can hear you.");
+
         }
 
+    }
+
+
+    public void makeToast(String s){
+        Context context = getApplicationContext();
+        CharSequence text = s;
+        int duration = Toast.LENGTH_LONG;
+
+        Toast toast = Toast.makeText(context, text, duration);
+        toast.show();
     }
 
 }
