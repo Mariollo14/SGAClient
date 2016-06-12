@@ -21,18 +21,16 @@ import android.util.Log;
  */
 public class GPSLocator implements LocationListener {
 
-    private LocationManager locationManager;
-    TextureFromCameraActivity activity;
-    private SimParameters simulation;
+    private String TAG = "GPSLocator";
 
-    //commentcommit
+    private LocationManager locationManager;
+    private TextureFromCameraActivity activity;
+    private SimParameters simulation;
 
     // Flag for GPS status
     boolean isGPSEnabled = false;
-
     // Flag for network status
     boolean isNetworkEnabled = false;
-
     // Flag for GPS status
     boolean canGetLocation = false;
 
@@ -42,11 +40,8 @@ public class GPSLocator implements LocationListener {
 
     // The minimum distance to change Updates in meters
     private static final long MIN_DISTANCE_CHANGE_FOR_UPDATES = 2; // 2 meters
-
     // The minimum time between updates in milliseconds
     private static final long MIN_TIME_BW_UPDATES = 2000; // 2sec
-
-
 
 
     public GPSLocator(TextureFromCameraActivity act, SimParameters simulation) {
@@ -59,20 +54,9 @@ public class GPSLocator implements LocationListener {
         locationManager.getBestProvider(criteria, true);
 
         location = requestLocationUpdate();
-        if (location != null) {
-            String loc = " lat:" + location.getLatitude() + " lon:" + location.getLongitude();
-            Log.d("LOCATION CHANGED!!", loc);
-            this.simulation = simulation;
-            //SimParameters simP = new SimParameters();
-            simulation.testDistance(location);
-        } else {
-            Log.d("LOCATION Null", "check line 51 at GPSLocator");
-        }
-
+        this.simulation = simulation;
 
     }
-
-
 
     /**
      * Stop using GPS listener
@@ -94,14 +78,14 @@ public class GPSLocator implements LocationListener {
 
     @Override
     public void onLocationChanged(Location newLocation) {
-        String loc = " lat:" + newLocation.getLatitude() + " lon:"+newLocation.getLongitude();
-        Log.d("LOCATION CHANGED!!", loc );
+        //String loc = " lat:" + newLocation.getLatitude() + " lon:"+newLocation.getLongitude();
+        //Log.d("LOCATION CHANGED!!", loc );
 
         //if(newLocation.getAccuracy()<50){}
         if(newLocation!=null) {
 
             location = newLocation;
-            Log.e("LOCATION UPDATED", loc );
+            //Log.e("LOCATION UPDATED", loc );
 
         }
     }

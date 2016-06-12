@@ -73,23 +73,6 @@ public class SimParameters {
 
     }
 
-    public void testDistance(Location yourLoc){
-        /*
-        String dmia,dmiahav, dTO;
-
-        dmia = "dmia: " + LocationUtilities.getEquirectangularApproximationDistance(yourLoc.getLatitude(),yourLoc.getLongitude(),
-                                                                              targetLocation.getLatitude(),targetLocation.getLongitude());
-
-
-        dmiahav = "dmiahav: " + LocationUtilities.getHaversineDistance(yourLoc.getLatitude(),yourLoc.getLongitude(),
-                targetLocation.getLatitude(),targetLocation.getLongitude());
-
-
-        dTO = "dTO: " +yourLoc.distanceTo(targetLocation);
-
-        Log.d("DISTANCE!",dmia + "\n "+ dTO+"\n "+ dmiahav);
-        */
-    }
 
 
 }

@@ -428,30 +428,12 @@ public class SensorFusion implements SensorEventListener {
             //mRollView -> y JPCT
             Double f2f = fusedOrientation[2] * 180 / Math.PI;
             String f2 = dformat.format(f2f);
-            // update sensor output in GUI
-            //mHandler.post(updateOreintationDisplayTask);
 
-            /*
-            int SENSIBILITY = 0;
-            if( lastx-f0f.floatValue()>SENSIBILITY || lastx-f0f.floatValue()<SENSIBILITY ||
-                lasty-f1f.floatValue()>SENSIBILITY || lasty-f1f.floatValue()<SENSIBILITY ||
-                lastz-f2f.floatValue()>SENSIBILITY || lastz-f2f.floatValue()<SENSIBILITY
-            )
-            activity.onNewOrientationAnglesComputed(f0f.floatValue(),f1f.floatValue(),f2f.floatValue());
 
-            lastx=f0f.floatValue();
-            lasty=f1f.floatValue();
-            lastz=f2f.floatValue();
-
-            */
             int inclination = (int) Math.round(Math.toDegrees(Math.acos(rotationMatrix[8])));
             activity.onNewOrientationAnglesComputed(f2f.floatValue(),f1f.floatValue(),f0f.floatValue(),inclination>90);
 
-
-            //activity.onNewOrientationMatrixComputed(gyroMatrix);
-            //
-            //activity.onNewOrientationAnglesComputed(f0f.floatValue(),f1f.floatValue(),f2f.floatValue());
-
+            // update sensor output GUI
             activity.showOrientationFusedAngle(f0f,f1f,f2f);
         }
     }
