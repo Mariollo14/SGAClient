@@ -981,16 +981,22 @@ public class TextureFromCameraActivity extends Activity
             //EYE
             //onCameraReady fragment
             mCamera.stopPreview();
-            setupCamera(PictureWidth, PictureHeight, 4, 25.0, previewCb);
-            Log.e(TAG,"camW:"+cameraView.getWidth()+"camH:"+cameraView.getHeight());
-            nativeInitMediaEncoder(cameraView.getWidth(), cameraView.getHeight());
-
+            Camera.Size chosenSize = setupCamera(PictureWidth, PictureHeight, 4, 25.0, previewCb);
+            Log.e(TAG,"camW:"+chosenSize.width+" camH:"+chosenSize.height);
+            //nativeInitMediaEncoder(cameraView.getWidth(), cameraView.getHeight());
+            nativeInitMediaEncoder(chosenSize.width, chosenSize.height);
+            /*
+            List<Camera.Size> sizes = mCamera.getParameters().getSupportedPreviewSizes();
+            for(Camera.Size size : sizes){
+                Log.e(TAG,"Sizes: w:"+size.width+" h:"+size.height);
+            }
+            */
             mCamera.startPreview();
 
         }
 
         //EYE
-        public void setupCamera(int wid, int hei, int bufNumber, double fps, PreviewCallback cb) {
+        public Camera.Size setupCamera(int wid, int hei, int bufNumber, double fps, PreviewCallback cb) {
 
             double diff = Math.abs(supportedSizes.get(0).width*supportedSizes.get(0).height - wid*hei);
             int targetIndex = 0;
@@ -1032,6 +1038,8 @@ public class TextureFromCameraActivity extends Activity
                 mCamera.addCallbackBuffer(buffer);
             }
             mCamera.setPreviewCallbackWithBuffer(cb);
+
+            return supportedSizes.get(targetIndex);
         }
 
         /**
@@ -1720,6 +1728,9 @@ public class TextureFromCameraActivity extends Activity
 
         }
 
+
+        private long INTERVAL = System.currentTimeMillis();
+
         public boolean sendMedia(byte[] data, int length) {
 
             boolean ret = false;
@@ -1733,8 +1744,12 @@ public class TextureFromCameraActivity extends Activity
             if (inStreaming == true) {
                 mediaSocket.send(buf);
                 ret = true;
-                Log.e("sendMedia:", "length:"+length);
-                //mediaSocket.send("camW:"+mCameraPreviewWidth+" camH:"+mCameraPreviewHeight);
+
+                long newTime = System.currentTimeMillis();
+                long intv=newTime-INTERVAL;
+                INTERVAL=newTime;
+
+                Log.e(TAG, "sending:"+length+" byte. TIMEINMILLIS:"+intv);//mediaSocket.send("camW:"+mCameraPreviewWidth+" camH:"+mCameraPreviewHeight);
 
             }
 
