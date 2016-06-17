@@ -179,14 +179,14 @@ public class TextureFromCameraActivity extends Activity
     private final int StreamingPort = 8088;
     private final int PictureWidth = 480;
     private final int PictureHeight = 360;
-    private static final int MediaBlockNumber = 3;
-    private final int MediaBlockSize = 1024*512;
-    private final int EstimatedFrameNumber = 30;
-    private final int StreamingInterval = 100;
+    private static final int MediaBlockNumber = 10;//3;
+    private static final int MediaBlockSize = 1024*1024;//1024*512;
+    private final int EstimatedFrameNumber = 1;//30;
+    private final int StreamingInterval = 3;//100;
     // EYE
     private StreamingServer streamingServer = null;
     private TeaServer webServer = null;
-    ExecutorService executor = Executors.newFixedThreadPool(3);
+    ExecutorService executor = Executors.newFixedThreadPool(10);//(3);
     VideoEncodingTask videoTask = new  VideoEncodingTask();
     private ReentrantLock previewLock = new ReentrantLock();
     boolean inProcessing = false;
@@ -287,6 +287,7 @@ public class TextureFromCameraActivity extends Activity
         streamingHandler.postDelayed(new Runnable() {
             @Override
             public void run() {
+
                 doStreaming();
             }
         }, StreamingInterval);
@@ -984,13 +985,14 @@ public class TextureFromCameraActivity extends Activity
             Camera.Size chosenSize = setupCamera(PictureWidth, PictureHeight, 4, 25.0, previewCb);
             Log.e(TAG,"camW:"+chosenSize.width+" camH:"+chosenSize.height);
             //nativeInitMediaEncoder(cameraView.getWidth(), cameraView.getHeight());
-            nativeInitMediaEncoder(chosenSize.width, chosenSize.height);
+            nativeInitMediaEncoder(chosenSize.width, chosenSize.height);//M48 remember using nativeReleaseMediaEncoder
             /*
             List<Camera.Size> sizes = mCamera.getParameters().getSupportedPreviewSizes();
             for(Camera.Size size : sizes){
                 Log.e(TAG,"Sizes: w:"+size.width+" h:"+size.height);
             }
             */
+
             mCamera.startPreview();
 
         }
@@ -1540,11 +1542,26 @@ public class TextureFromCameraActivity extends Activity
 
 
     private void doStreaming () {
+        Log.e(TAG,"doStreaming");
         synchronized(TextureFromCameraActivity.this) {
 
             MediaBlock targetBlock = mediaBlocks[mediaReadIndex];
-            if(targetBlock==null)Log.e(TAG,"M48, null mediablock");
+            if(targetBlock==null){
+                Log.e(TAG,"M48, null mediablock");
+                Thread.yield();
+            }
+            //if(targetBlock!=null)
             if ( targetBlock.flag == 1) {
+
+
+                // HERE IS THE PROBLEM
+                /*
+                long newtmill= System.currentTimeMillis();
+                long mill = newtmill - tmill;
+                tmill=newtmill;
+                Log.e("Thread run interval:", ""+mill);
+                */
+
                 streamingServer.sendMedia( targetBlock.data(), targetBlock.length());
                 targetBlock.reset();
 
@@ -1586,12 +1603,21 @@ public class TextureFromCameraActivity extends Activity
         return ipAddressString;
     }
 
+
+
+    private long tmill = System.currentTimeMillis();
     //
     //  Internal help class and object definment
     //
     private PreviewCallback previewCb = new PreviewCallback() {
         public void onPreviewFrame(byte[] frame, Camera c) {
             previewLock.lock();
+            /*
+            long newtmill= System.currentTimeMillis();
+            long mill = newtmill - tmill;
+            tmill=newtmill;
+            Log.e("prevCall interval:", ""+mill);
+            */
             doVideoEncode(frame);
             c.addCallbackBuffer(frame);
             previewLock.unlock();
@@ -1610,6 +1636,7 @@ public class TextureFromCameraActivity extends Activity
         //Log.e("doVideoEncode","picWidth:"+picWidth+" picHeight:"+picHeight);
         int size = frame.length; //TESTM48 picWidth*picHeight + picWidth*picHeight/2;
         System.arraycopy(frame, 0, yuvFrame, 0, size);
+
 
         executor.execute(videoTask);
     };
@@ -1639,12 +1666,15 @@ public class TextureFromCameraActivity extends Activity
         private byte[] resultNal = new byte[1024*1024];
         private byte[] videoHeader = new byte[8];
 
+
+
         public VideoEncodingTask() {
             videoHeader[0] = (byte)0x19;
             videoHeader[1] = (byte)0x79;
         }
 
         public void run() {
+
             MediaBlock currentBlock = mediaBlocks[ mediaWriteIndex ];
             if ( currentBlock.flag == 1) {
                 inProcessing = false;
@@ -1657,6 +1687,7 @@ public class TextureFromCameraActivity extends Activity
             }
             int millis = (int)(System.currentTimeMillis() % 65535);
             int ret = nativeDoVideoEncode(yuvFrame, resultNal, intraFlag);
+
             if ( ret <= 0) {
                 return;
             }
@@ -1671,6 +1702,8 @@ public class TextureFromCameraActivity extends Activity
             videoHeader[7] = (byte)((ret>>24) & 0xFF);
 
             synchronized(TextureFromCameraActivity.this) {
+
+
                 if ( currentBlock.flag == 0) {
                     boolean changeBlock = false;
 
@@ -1720,7 +1753,7 @@ public class TextureFromCameraActivity extends Activity
 
         private WebSocket mediaSocket = null;
         public boolean inStreaming = false;
-        private final int MediaBlockSize = 1024 * 512;
+        //private final int MediaBlockSize = 1024 * 512;
         ByteBuffer buf = ByteBuffer.allocate(MediaBlockSize);
 
         public StreamingServer(int port) throws UnknownHostException {
@@ -1732,7 +1765,7 @@ public class TextureFromCameraActivity extends Activity
         private long INTERVAL = System.currentTimeMillis();
 
         public boolean sendMedia(byte[] data, int length) {
-
+            Log.e(TAG, "sendMedia() ");
             boolean ret = false;
 
             if (inStreaming == true) {
@@ -1758,6 +1791,9 @@ public class TextureFromCameraActivity extends Activity
 
         @Override
         public void onOpen(WebSocket conn, ClientHandshake handshake) {
+
+            Log.e("onOpen:", conn.getRemoteSocketAddress().toString() + "instreaming="+inStreaming);
+
 
             if (inStreaming == true) {
                 conn.close();
