@@ -121,7 +121,6 @@ public class TextureFromCameraActivity extends Activity
     private static final int REQUEST_INTERNET = 3;
 
 
-
     private static final int DEFAULT_ZOOM_PERCENT = 0;      // 0-100
     private static final int DEFAULT_SIZE_PERCENT = 100;     // 0-100
     private static final int DEFAULT_ROTATE_PERCENT = 0;    // 0-100
@@ -130,8 +129,6 @@ public class TextureFromCameraActivity extends Activity
     private static final int REQ_CAMERA_WIDTH = 1280;
     private static final int REQ_CAMERA_HEIGHT = 720;
     private static final int REQ_CAMERA_FPS = 30;
-
-
 
 
     // The holder for our SurfaceView.  The Surface can outlive the Activity (e.g. when
@@ -179,24 +176,24 @@ public class TextureFromCameraActivity extends Activity
     private final int StreamingPort = 8088;
     private final int PictureWidth = 480;
     private final int PictureHeight = 360;
-    private static final int MediaBlockNumber = 10;//3;
-    private static final int MediaBlockSize = 1024*1024;//1024*512;
+    private static final int MediaBlockNumber = 10;
+    private static final int MediaBlockSize = 1024*512;
     private final int EstimatedFrameNumber = 1;//30;
     private final int StreamingInterval = 3;//100;
     // EYE
     private StreamingServer streamingServer = null;
     private TeaServer webServer = null;
-    ExecutorService executor = Executors.newFixedThreadPool(10);//(3);
-    VideoEncodingTask videoTask = new  VideoEncodingTask();
+    ExecutorService executor = Executors.newFixedThreadPool(3);
+    VideoEncodingTask videoTask = new VideoEncodingTask();
     private ReentrantLock previewLock = new ReentrantLock();
     boolean inProcessing = false;
-    byte[] yuvFrame = new byte[1920*1280*2];
+    byte[] yuvFrame = new byte[1920 * 1280 * 2];
     private static MediaBlock[] mediaBlocks = new MediaBlock[MediaBlockNumber];
     int mediaWriteIndex = 0;
     int mediaReadIndex = 0;
     Handler streamingHandler;
     //EYE class CameraView fragment
-    private List<int[]>       supportedFrameRate;
+    private List<int[]> supportedFrameRate;
     private List<Camera.Size> supportedSizes;
     private Camera.Size procSize_;
 
@@ -277,7 +274,7 @@ public class TextureFromCameraActivity extends Activity
         requestInternetPermission();
 
         //TESTM48 spostato da onResume
-        if ( initWebServer() ) {
+        if (initWebServer()) {
             //M48 initAudio();
             //initCamera();
         } else {
@@ -307,11 +304,9 @@ public class TextureFromCameraActivity extends Activity
     public void onStop() {
         super.onStop();
         //TESTM48 spostate da onPause
-        if ( webServer != null)
+        if (webServer != null)
             webServer.stop();
     }
-
-
 
 
     @Override
@@ -323,27 +318,27 @@ public class TextureFromCameraActivity extends Activity
         mySensorFusion.initListeners();
         //try catch mario
         //try {
-            mRenderThread = new RenderThread(mHandler);
-            mRenderThread.setName("TexFromCam Render");
-            mRenderThread.start();
-            mRenderThread.waitUntilReady();
+        mRenderThread = new RenderThread(mHandler);
+        mRenderThread.setName("TexFromCam Render");
+        mRenderThread.start();
+        mRenderThread.waitUntilReady();
 
-            RenderHandler rh = mRenderThread.getHandler();
+        RenderHandler rh = mRenderThread.getHandler();
             /*
             mario
             rh.sendZoomValue(mZoomBar.getProgress());
             rh.sendSizeValue(mSizeBar.getProgress());
             rh.sendRotateValue(mRotateBar.getProgress());
             */
-            if (sSurfaceHolder != null) {
-                rh.sendSurfaceAvailable(sSurfaceHolder, false);
-            } else {
-                Log.d(TAG, "No previous surface");
-            }
+        if (sSurfaceHolder != null) {
+            rh.sendSurfaceAvailable(sSurfaceHolder, false);
+        } else {
+            Log.d(TAG, "No previous surface");
+        }
 
         //} catch (Exception e) {
-            // Show toast to the user
-            //Toast.makeText(getApplicationContext(), "Data lost due to excess use of other apps", Toast.LENGTH_LONG).show();
+        // Show toast to the user
+        //Toast.makeText(getApplicationContext(), "Data lost due to excess use of other apps", Toast.LENGTH_LONG).show();
         //}
 
         try {
@@ -393,7 +388,7 @@ public class TextureFromCameraActivity extends Activity
                     // contacts-related task you need to do.
 
                 } else {
-                    Log.e(TAG,"Fine Location Permission denied. Handle it at onRequestPermissionResult");
+                    Log.e(TAG, "Fine Location Permission denied. Handle it at onRequestPermissionResult");
                     // permission denied, boo! Disable the
                     // functionality that depends on this permission.
                     onPause();
@@ -411,7 +406,7 @@ public class TextureFromCameraActivity extends Activity
                     // permission was granted, yay!
 
                 } else {
-                    Log.e(TAG,"Coarse Location Permission denied. Handle it at onRequestPermissionResult");
+                    Log.e(TAG, "Coarse Location Permission denied. Handle it at onRequestPermissionResult");
                     // permission denied, boo! Disable the
                     // functionality that depends on this permission.
                     onPause();
@@ -429,7 +424,7 @@ public class TextureFromCameraActivity extends Activity
 
                 } else {
 
-                    Log.e(TAG,"Camera Permission denied. Handle it at onRequestPermissionResult");
+                    Log.e(TAG, "Camera Permission denied. Handle it at onRequestPermissionResult");
                     // permission denied, boo! Disable the
                     // functionality that depends on this permission.
                     onPause();
@@ -447,7 +442,7 @@ public class TextureFromCameraActivity extends Activity
 
                 } else {
 
-                    Log.e(TAG,"INTERNET Permission denied. Handle it at onRequestPermissionResult");
+                    Log.e(TAG, "INTERNET Permission denied. Handle it at onRequestPermissionResult");
                     // permission denied, boo! Disable the
                     // functionality that depends on this permission.
                     onPause();
@@ -463,7 +458,7 @@ public class TextureFromCameraActivity extends Activity
     }
 
 
-    private void requestCameraPermission(){
+    private void requestCameraPermission() {
 
         // Here, thisActivity is the current activity
         if (ContextCompat.checkSelfPermission(TextureFromCameraActivity.this,
@@ -496,7 +491,7 @@ public class TextureFromCameraActivity extends Activity
     }
 
 
-    private void requestInternetPermission(){
+    private void requestInternetPermission() {
 
         // Here, thisActivity is the current activity
         if (ContextCompat.checkSelfPermission(TextureFromCameraActivity.this,
@@ -973,7 +968,7 @@ public class TextureFromCameraActivity extends Activity
                 // bit of reallocating if a surface-changed message arrives.
                 mWindowSurfaceWidth = mWindowSurface.getWidth();
                 mWindowSurfaceHeight = mWindowSurface.getHeight();
-                Log.e(TAG, "camW:"+ mWindowSurfaceWidth+" camH:"+ mWindowSurfaceHeight);
+                Log.e(TAG, "camW:" + mWindowSurfaceWidth + " camH:" + mWindowSurfaceHeight);
                 finishSurfaceSetup();
             }
 
@@ -983,7 +978,7 @@ public class TextureFromCameraActivity extends Activity
             //onCameraReady fragment
             mCamera.stopPreview();
             Camera.Size chosenSize = setupCamera(PictureWidth, PictureHeight, 4, 25.0, previewCb);
-            Log.e(TAG,"camW:"+chosenSize.width+" camH:"+chosenSize.height);
+            Log.e(TAG, "camW:" + chosenSize.width + " camH:" + chosenSize.height);
             //nativeInitMediaEncoder(cameraView.getWidth(), cameraView.getHeight());
             nativeInitMediaEncoder(chosenSize.width, chosenSize.height);//M48 remember using nativeReleaseMediaEncoder
             /*
@@ -1000,11 +995,11 @@ public class TextureFromCameraActivity extends Activity
         //EYE
         public Camera.Size setupCamera(int wid, int hei, int bufNumber, double fps, PreviewCallback cb) {
 
-            double diff = Math.abs(supportedSizes.get(0).width*supportedSizes.get(0).height - wid*hei);
+            double diff = Math.abs(supportedSizes.get(0).width * supportedSizes.get(0).height - wid * hei);
             int targetIndex = 0;
-            for(int i = 1; i < supportedSizes.size(); i++) {
-                double newDiff =  Math.abs(supportedSizes.get(i).width*supportedSizes.get(i).height - wid*hei);
-                if ( newDiff < diff) {
+            for (int i = 1; i < supportedSizes.size(); i++) {
+                double newDiff = Math.abs(supportedSizes.get(i).width * supportedSizes.get(i).height - wid * hei);
+                if (newDiff < diff) {
                     diff = newDiff;
                     targetIndex = i;
                 }
@@ -1012,11 +1007,11 @@ public class TextureFromCameraActivity extends Activity
             procSize_.width = supportedSizes.get(targetIndex).width;
             procSize_.height = supportedSizes.get(targetIndex).height;
 
-            diff = Math.abs(supportedFrameRate.get(0)[0] * supportedFrameRate.get(0)[1]  - fps*fps*1000*1000);
+            diff = Math.abs(supportedFrameRate.get(0)[0] * supportedFrameRate.get(0)[1] - fps * fps * 1000 * 1000);
             targetIndex = 0;
-            for(int i = 1; i < supportedFrameRate.size(); i++) {
-                double newDiff = Math.abs(supportedFrameRate.get(i)[0] * supportedFrameRate.get(i)[1]  - fps*fps*1000*1000);
-                if ( newDiff < diff) {
+            for (int i = 1; i < supportedFrameRate.size(); i++) {
+                double newDiff = Math.abs(supportedFrameRate.get(i)[0] * supportedFrameRate.get(i)[1] - fps * fps * 1000 * 1000);
+                if (newDiff < diff) {
                     diff = newDiff;
                     targetIndex = i;
                 }
@@ -1026,7 +1021,7 @@ public class TextureFromCameraActivity extends Activity
 
             Camera.Parameters p = mCamera.getParameters();
             p.setPreviewSize(procSize_.width, procSize_.height);
-            Log.e("Preview Size set to:","w:"+procSize_.width+" h:"+procSize_.height);
+            Log.e("Preview Size set to:", "w:" + procSize_.width + " h:" + procSize_.height);
             p.setPreviewFormat(ImageFormat.NV21);
             p.setPreviewFpsRange(targetMaxFrameRate, targetMinFrameRate);
             mCamera.setParameters(p);
@@ -1035,8 +1030,8 @@ public class TextureFromCameraActivity extends Activity
             PixelFormat.getPixelFormatInfo(ImageFormat.NV21, pixelFormat);
             int bufSize = procSize_.width * procSize_.height * pixelFormat.bitsPerPixel / 8;
             byte[] buffer = null;
-            for(int i = 0; i < bufNumber; i++) {
-                buffer = new byte[ bufSize ];
+            for (int i = 0; i < bufNumber; i++) {
+                buffer = new byte[bufSize];
                 mCamera.addCallbackBuffer(buffer);
             }
             mCamera.setPreviewCallbackWithBuffer(cb);
@@ -1217,7 +1212,7 @@ public class TextureFromCameraActivity extends Activity
 
             //EYE
             // init audio and camera
-            for(int i = 0; i < MediaBlockNumber; i++) {
+            for (int i = 0; i < MediaBlockNumber; i++) {
                 mediaBlocks[i] = new MediaBlock(MediaBlockSize);
             }
             resetMediaBuffer();
@@ -1247,7 +1242,7 @@ public class TextureFromCameraActivity extends Activity
             //EYE
             supportedFrameRate = parms.getSupportedPreviewFpsRange();
             supportedSizes = parms.getSupportedPreviewSizes();
-            procSize_ = supportedSizes.get( supportedSizes.size()/2 );
+            procSize_ = supportedSizes.get(supportedSizes.size() / 2);
             //p.setPreviewSize(procSize_.width, procSize_.height);
             mCamera.setPreviewCallbackWithBuffer(null);
 
@@ -1493,12 +1488,16 @@ public class TextureFromCameraActivity extends Activity
 
     @SuppressWarnings("JniMissingFunction")
     private native void nativeInitMediaEncoder(int width, int height);
+
     @SuppressWarnings("JniMissingFunction")
     private native void nativeReleaseMediaEncoder(int width, int height);
+
     @SuppressWarnings("JniMissingFunction")
     private native int nativeDoVideoEncode(byte[] in, byte[] out, int flag);
+
     @SuppressWarnings("JniMissingFunction")
     private native int nativeDoAudioEncode(byte[] in, int length, byte[] out);
+
     static {
         System.loadLibrary("MediaEncoder");
     }
@@ -1516,60 +1515,63 @@ public class TextureFromCameraActivity extends Activity
 
         String ipAddr = wifiIpAddress(this);
 
-        if ( ipAddr != null ) {
-            try{
+        if (ipAddr != null) {
+            try {
                 webServer = new TeaServer(8080, this);
                 webServer.registerCGI("/cgi/query", doQuery);
-            }catch (IOException e){
+            } catch (IOException e) {
                 webServer = null;
             }
         }
 
-        TextView tv = (TextView)findViewById(R.id.tv_message);
-        if ( webServer != null) {
-            Log.e("IPADDRESS:", getString(R.string.msg_access_local) + " http://" + ipAddr  + ":8080");
-            tv.setText( getString(R.string.msg_access_local) + " http://" + ipAddr  + ":8080" );
+        TextView tv = (TextView) findViewById(R.id.tv_message);
+        if (webServer != null) {
+            Log.e("IPADDRESS:", getString(R.string.msg_access_local) + " http://" + ipAddr + ":8080");
+            tv.setText(getString(R.string.msg_access_local) + " http://" + ipAddr + ":8080");
             return true;
         } else {
-            if ( ipAddr == null) {
-                tv.setText( getString(R.string.msg_wifi_error) );
+            if (ipAddr == null) {
+                tv.setText(getString(R.string.msg_wifi_error));
             } else {
-                tv.setText( getString(R.string.msg_port_error) );
+                tv.setText(getString(R.string.msg_port_error));
             }
             return false;
         }
     }
 
 
-    private void doStreaming () {
-        Log.e(TAG,"doStreaming");
-        synchronized(TextureFromCameraActivity.this) {
+    private void doStreaming() {
+
+        synchronized (TextureFromCameraActivity.this) {
+            //Log.e(TAG,"doStreaming");
+
 
             MediaBlock targetBlock = mediaBlocks[mediaReadIndex];
-            if(targetBlock==null){
-                Log.e(TAG,"M48, null mediablock");
+            if (targetBlock == null) {
+                Log.e(TAG, "M48, null mediablock, thread yield");
                 Thread.yield();
-            }
-            //if(targetBlock!=null)
-            if ( targetBlock.flag == 1) {
+            } else if (targetBlock != null)
+                if (targetBlock.flag == 1) {
 
+                    Log.e(TAG, "doStreaming: flag=1");
 
-                // HERE IS THE PROBLEM
-                /*
-                long newtmill= System.currentTimeMillis();
-                long mill = newtmill - tmill;
-                tmill=newtmill;
-                Log.e("Thread run interval:", ""+mill);
-                */
+                    // HERE IS THE PROBLEM
+                    /*
+                    long newtmill= System.currentTimeMillis();
+                    long mill = newtmill - tmill;
+                    tmill=newtmill;
+                    Log.e("Thread run interval:", ""+mill);
+                    */
 
-                streamingServer.sendMedia( targetBlock.data(), targetBlock.length());
-                targetBlock.reset();
+                    streamingServer.sendMedia(targetBlock.data(), targetBlock.length());
+                    targetBlock.reset();
 
-                mediaReadIndex ++;
-                if ( mediaReadIndex >= MediaBlockNumber) {
-                    mediaReadIndex = 0;
+                    mediaReadIndex++;
+                    if (mediaReadIndex >= MediaBlockNumber) {
+                        mediaReadIndex = 0;
+                    }
                 }
-            }
+
         }
 
         streamingHandler.postDelayed(new Runnable() {
@@ -1604,7 +1606,6 @@ public class TextureFromCameraActivity extends Activity
     }
 
 
-
     private long tmill = System.currentTimeMillis();
     //
     //  Internal help class and object definment
@@ -1618,7 +1619,10 @@ public class TextureFromCameraActivity extends Activity
             tmill=newtmill;
             Log.e("prevCall interval:", ""+mill);
             */
-            doVideoEncode(frame);
+            if(streamingServer!=null)
+                if(streamingServer.inStreaming==true)
+                        doVideoEncode(frame);
+
             c.addCallbackBuffer(frame);
             previewLock.unlock();
         }
@@ -1626,7 +1630,7 @@ public class TextureFromCameraActivity extends Activity
 
 
     private void doVideoEncode(byte[] frame) {
-        if ( inProcessing == true) {
+        if (inProcessing == true) {
             return;
         }
         inProcessing = true;
@@ -1639,13 +1643,15 @@ public class TextureFromCameraActivity extends Activity
 
 
         executor.execute(videoTask);
-    };
+    }
 
-    private TeaServer.CommonGatewayInterface doQuery = new TeaServer.CommonGatewayInterface () {
+    ;
+
+    private TeaServer.CommonGatewayInterface doQuery = new TeaServer.CommonGatewayInterface() {
         @Override
         public String run(Properties parms) {
             String ret = "";
-            if ( streamingServer.inStreaming == true ) {
+            if (streamingServer.inStreaming == true) {
                 ret = "{\"state\": \"busy\"}";
             } else {
                 ret = "{\"state\": \"ok\",";
@@ -1663,68 +1669,72 @@ public class TextureFromCameraActivity extends Activity
 
     //EYE
     private class VideoEncodingTask implements Runnable {
-        private byte[] resultNal = new byte[1024*1024];
+        private byte[] resultNal = new byte[1024 * 1024];
         private byte[] videoHeader = new byte[8];
 
 
-
         public VideoEncodingTask() {
-            videoHeader[0] = (byte)0x19;
-            videoHeader[1] = (byte)0x79;
+            videoHeader[0] = (byte) 0x19;
+            videoHeader[1] = (byte) 0x79;
         }
 
         public void run() {
+            Log.e(TAG,"VIDEOENCODINGTASK");
 
-            MediaBlock currentBlock = mediaBlocks[ mediaWriteIndex ];
-            if ( currentBlock.flag == 1) {
+            MediaBlock currentBlock = mediaBlocks[mediaWriteIndex];
+            if (currentBlock.flag == 1) {
                 inProcessing = false;
                 return;
             }
 
             int intraFlag = 0;
-            if ( currentBlock.videoCount == 0) {
+            if (currentBlock.videoCount == 0) {
                 intraFlag = 1;
             }
-            int millis = (int)(System.currentTimeMillis() % 65535);
+            int millis = (int) (System.currentTimeMillis() % 65535);
             int ret = nativeDoVideoEncode(yuvFrame, resultNal, intraFlag);
 
-            if ( ret <= 0) {
+
+            Log.e(TAG,"Encoding");
+
+            if (ret <= 0) {
                 return;
             }
 
             // timestamp
-            videoHeader[2] = (byte)(millis & 0xFF);
-            videoHeader[3] = (byte)((millis>>8) & 0xFF);
+            videoHeader[2] = (byte) (millis & 0xFF);
+            videoHeader[3] = (byte) ((millis >> 8) & 0xFF);
             // length
-            videoHeader[4] = (byte)(ret & 0xFF);
-            videoHeader[5] = (byte)((ret>>8) & 0xFF);
-            videoHeader[6] = (byte)((ret>>16) & 0xFF);
-            videoHeader[7] = (byte)((ret>>24) & 0xFF);
-
-            synchronized(TextureFromCameraActivity.this) {
+            videoHeader[4] = (byte) (ret & 0xFF);
+            videoHeader[5] = (byte) ((ret >> 8) & 0xFF);
+            videoHeader[6] = (byte) ((ret >> 16) & 0xFF);
+            videoHeader[7] = (byte) ((ret >> 24) & 0xFF);
 
 
-                if ( currentBlock.flag == 0) {
+            synchronized (TextureFromCameraActivity.this) {
+
+
+                if (currentBlock.flag == 0) {
                     boolean changeBlock = false;
 
-                    if ( currentBlock.length() + ret + 8 <= MediaBlockSize ) {
-                        currentBlock.write( videoHeader, 8 );
-                        currentBlock.writeVideo( resultNal, ret);
+                    if (currentBlock.length() + ret + 8 <= MediaBlockSize) {
+                        currentBlock.write(videoHeader, 8);
+                        currentBlock.writeVideo(resultNal, ret);
                     } else {
                         changeBlock = true;
                     }
 
-                    if ( changeBlock == false ) {
-                        if ( currentBlock.videoCount >= EstimatedFrameNumber) {
+                    if (changeBlock == false) {
+                        if (currentBlock.videoCount >= EstimatedFrameNumber) {
                             changeBlock = true;
                         }
                     }
 
-                    if ( changeBlock == true) {
+                    if (changeBlock == true) {
                         currentBlock.flag = 1;
-
-                        mediaWriteIndex ++;
-                        if ( mediaWriteIndex >= MediaBlockNumber) {
+                        Log.e(TAG,"NEW BLOCK ENCODED");
+                        mediaWriteIndex++;
+                        if (mediaWriteIndex >= MediaBlockNumber) {
                             mediaWriteIndex = 0;
                         }
                     }
@@ -1734,12 +1744,14 @@ public class TextureFromCameraActivity extends Activity
 
             inProcessing = false;
         }
-    };
+    }
+
+    ;
 
 
     //EYE
     private void resetMediaBuffer() {
-        synchronized(TextureFromCameraActivity.this) {
+        synchronized (TextureFromCameraActivity.this) {
             for (int i = 1; i < MediaBlockNumber; i++) {
                 mediaBlocks[i].reset();
             }
@@ -1765,7 +1777,7 @@ public class TextureFromCameraActivity extends Activity
         private long INTERVAL = System.currentTimeMillis();
 
         public boolean sendMedia(byte[] data, int length) {
-            Log.e(TAG, "sendMedia() ");
+            //Log.e(TAG, "sendMedia() ");
             boolean ret = false;
 
             if (inStreaming == true) {
@@ -1779,10 +1791,10 @@ public class TextureFromCameraActivity extends Activity
                 ret = true;
 
                 long newTime = System.currentTimeMillis();
-                long intv=newTime-INTERVAL;
-                INTERVAL=newTime;
+                long intv = newTime - INTERVAL;
+                INTERVAL = newTime;
 
-                Log.e(TAG, "sending:"+length+" byte. TIMEINMILLIS:"+intv);//mediaSocket.send("camW:"+mCameraPreviewWidth+" camH:"+mCameraPreviewHeight);
+                Log.e(TAG, "sending:" + length + " byte. TIMEINMILLIS:" + intv);//mediaSocket.send("camW:"+mCameraPreviewWidth+" camH:"+mCameraPreviewHeight);
 
             }
 
@@ -1792,10 +1804,16 @@ public class TextureFromCameraActivity extends Activity
         @Override
         public void onOpen(WebSocket conn, ClientHandshake handshake) {
 
-            Log.e("onOpen:", conn.getRemoteSocketAddress().toString() + "instreaming="+inStreaming);
+            Log.e("onOpen:", " instreaming=" + inStreaming);
 
 
             if (inStreaming == true) {
+                /*
+                inStreaming = false;//mario
+                mediaSocket.close();//mario
+                mediaSocket = conn;//mario
+                inStreaming = true;
+                */
                 conn.close();
             } else {
                 Log.e("onOpen:", conn.getRemoteSocketAddress().toString());
@@ -1830,7 +1848,7 @@ public class TextureFromCameraActivity extends Activity
         @Override
         public void onMessage(WebSocket conn, String message) {
 
-            Log.e("received",message);
+            Log.e("received", message);
             conn.send("I can hear you.");
 
         }
@@ -1838,7 +1856,7 @@ public class TextureFromCameraActivity extends Activity
     }
 
 
-    public void makeToast(String s){
+    public void makeToast(String s) {
         Context context = getApplicationContext();
         CharSequence text = s;
         int duration = Toast.LENGTH_LONG;
