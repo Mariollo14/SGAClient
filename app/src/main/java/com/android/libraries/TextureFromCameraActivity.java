@@ -11,9 +11,6 @@ import android.graphics.ImageFormat;
 import android.graphics.PixelFormat;
 import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
-import android.media.AudioFormat;
-import android.media.AudioRecord;
-import android.media.MediaRecorder;
 import android.net.wifi.WifiManager;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
@@ -66,10 +63,8 @@ import org.java_websocket.server.WebSocketServer;
 import javax.microedition.khronos.egl.EGL10;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.egl.EGLDisplay;
-import javax.microedition.khronos.opengles.GL10;
 
 import teaonly.droideye.MediaBlock;
-import teaonly.droideye.TeaServer;
 
 /**
  * Direct the Camera preview to a GLES texture and manipulate it.
@@ -177,12 +172,11 @@ public class TextureFromCameraActivity extends Activity
     private final int PictureWidth = 480;
     private final int PictureHeight = 360;
     private static final int MediaBlockNumber = 10;
-    private static final int MediaBlockSize = 1024*512;
+    private static final int MediaBlockSize = 1024 * 512;
     private final int EstimatedFrameNumber = 1;//30;
     private final int StreamingInterval = 3;//100;
     // EYE
     private StreamingServer streamingServer = null;
-    private TeaServer webServer = null;
     ExecutorService executor = Executors.newFixedThreadPool(3);
     VideoEncodingTask videoTask = new VideoEncodingTask();
     private ReentrantLock previewLock = new ReentrantLock();
@@ -273,13 +267,8 @@ public class TextureFromCameraActivity extends Activity
 
         requestInternetPermission();
 
-        //TESTM48 spostato da onResume
-        if (initWebServer()) {
-            //M48 initAudio();
-            //initCamera();
-        } else {
-            return;
-        }
+        showIpAddress();
+
         streamingHandler = new Handler();
         streamingHandler.postDelayed(new Runnable() {
             @Override
@@ -303,9 +292,7 @@ public class TextureFromCameraActivity extends Activity
     @Override
     public void onStop() {
         super.onStop();
-        //TESTM48 spostate da onPause
-        if (webServer != null)
-            webServer.stop();
+
     }
 
 
@@ -1511,32 +1498,25 @@ public class TextureFromCameraActivity extends Activity
     //
     //  Internal help functions
     //
-    private boolean initWebServer() {
+    private boolean showIpAddress() {
 
         String ipAddr = wifiIpAddress(this);
 
-        if (ipAddr != null) {
-            try {
-                webServer = new TeaServer(8080, this);
-                webServer.registerCGI("/cgi/query", doQuery);
-            } catch (IOException e) {
-                webServer = null;
-            }
-        }
 
         TextView tv = (TextView) findViewById(R.id.tv_message);
-        if (webServer != null) {
+
+
+
+        if (ipAddr == null) {
+            tv.setText(getString(R.string.msg_wifi_error));
+        } else {
             Log.e("IPADDRESS:", getString(R.string.msg_access_local) + " http://" + ipAddr + ":8080");
             tv.setText(getString(R.string.msg_access_local) + " http://" + ipAddr + ":8080");
             return true;
-        } else {
-            if (ipAddr == null) {
-                tv.setText(getString(R.string.msg_wifi_error));
-            } else {
-                tv.setText(getString(R.string.msg_port_error));
-            }
-            return false;
+            //tv.setText(getString(R.string.msg_port_error));
         }
+        return false;
+
     }
 
 
@@ -1607,11 +1587,17 @@ public class TextureFromCameraActivity extends Activity
 
 
     private long tmill = System.currentTimeMillis();
+
     //
     //  Internal help class and object definment
     //
     private PreviewCallback previewCb = new PreviewCallback() {
+
+        private int PREVIEW_FRAME_LIMIT = 10;
+
+
         public void onPreviewFrame(byte[] frame, Camera c) {
+
             previewLock.lock();
             /*
             long newtmill= System.currentTimeMillis();
@@ -1619,9 +1605,9 @@ public class TextureFromCameraActivity extends Activity
             tmill=newtmill;
             Log.e("prevCall interval:", ""+mill);
             */
-            if(streamingServer!=null)
-                if(streamingServer.inStreaming==true)
-                        doVideoEncode(frame);
+            if (streamingServer != null)
+                if (streamingServer.inStreaming == true)
+                    doVideoEncode(frame);
 
             c.addCallbackBuffer(frame);
             previewLock.unlock();
@@ -1645,27 +1631,9 @@ public class TextureFromCameraActivity extends Activity
         executor.execute(videoTask);
     }
 
-    ;
 
-    private TeaServer.CommonGatewayInterface doQuery = new TeaServer.CommonGatewayInterface() {
-        @Override
-        public String run(Properties parms) {
-            String ret = "";
-            if (streamingServer.inStreaming == true) {
-                ret = "{\"state\": \"busy\"}";
-            } else {
-                ret = "{\"state\": \"ok\",";
-                ret = ret + "\"width\": \"" + mCameraPreviewWidth/*cameraView.Width()*/ + "\",";
-                ret = ret + "\"height\": \"" + mCameraPreviewHeight/*cameraView.Height()*/ + "\"}";
-            }
-            return ret;
-        }
 
-        @Override
-        public InputStream streaming(Properties parms) {
-            return null;
-        }
-    };
+
 
     //EYE
     private class VideoEncodingTask implements Runnable {
@@ -1679,7 +1647,7 @@ public class TextureFromCameraActivity extends Activity
         }
 
         public void run() {
-            Log.e(TAG,"VIDEOENCODINGTASK");
+            //Log.e(TAG,"VIDEOENCODINGTASK");
 
             MediaBlock currentBlock = mediaBlocks[mediaWriteIndex];
             if (currentBlock.flag == 1) {
@@ -1695,7 +1663,7 @@ public class TextureFromCameraActivity extends Activity
             int ret = nativeDoVideoEncode(yuvFrame, resultNal, intraFlag);
 
 
-            Log.e(TAG,"Encoding");
+            //Log.e(TAG,"Encoding");
 
             if (ret <= 0) {
                 return;
@@ -1732,7 +1700,7 @@ public class TextureFromCameraActivity extends Activity
 
                     if (changeBlock == true) {
                         currentBlock.flag = 1;
-                        Log.e(TAG,"NEW BLOCK ENCODED");
+                        //Log.e(TAG,"NEW BLOCK ENCODED");
                         mediaWriteIndex++;
                         if (mediaWriteIndex >= MediaBlockNumber) {
                             mediaWriteIndex = 0;
