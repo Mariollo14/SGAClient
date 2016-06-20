@@ -10,6 +10,7 @@ import android.content.pm.PackageManager;
 import android.graphics.ImageFormat;
 import android.graphics.PixelFormat;
 import android.graphics.SurfaceTexture;
+import android.graphics.YuvImage;
 import android.hardware.Camera;
 import android.net.wifi.WifiManager;
 import android.opengl.GLES20;
@@ -185,7 +186,10 @@ public class TextureFromCameraActivity extends Activity
     private static MediaBlock[] mediaBlocks = new MediaBlock[MediaBlockNumber];
     int mediaWriteIndex = 0;
     int mediaReadIndex = 0;
-    Handler streamingHandler;
+    private Handler streamingHandler;
+    private StreamingThread streamingThread;
+
+
     //EYE class CameraView fragment
     private List<int[]> supportedFrameRate;
     private List<Camera.Size> supportedSizes;
@@ -280,24 +284,10 @@ public class TextureFromCameraActivity extends Activity
             return;
         }
 
-        streamingHandler = new Handler(new Handler.Callback() {
-            @Override
-            public boolean handleMessage(Message msg) {
 
-                final int readIndex = msg.arg1;
-                Runnable r = new Runnable() {
-                    @Override
-                    public void run() {
 
-                        doStreaming2(readIndex);
-                    }
-                };
-
-                new Thread(r).start();
-                return true;
-            }
-        });
-
+        streamingThread = new StreamingThread();
+        streamingThread.start();
         /*
         streamingHandler = new Handler();
 
@@ -312,6 +302,7 @@ public class TextureFromCameraActivity extends Activity
 
         requestCameraPermission();
     }
+
 
 
     @Override
@@ -575,7 +566,7 @@ public class TextureFromCameraActivity extends Activity
 
     @Override   // SurfaceHolder.Callback
     public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-        Log.e(TAG, "surfaceChanged format=" + format + " w=" + width + " h=" + height);
+        //Log.e(TAG, "surfaceChanged format=" + format + " w=" + width + " h=" + height);
 
         if (mRenderThread != null) {
             RenderHandler rh = mRenderThread.getHandler();
@@ -927,7 +918,7 @@ public class TextureFromCameraActivity extends Activity
 
             openCamera(REQ_CAMERA_WIDTH, REQ_CAMERA_HEIGHT, REQ_CAMERA_FPS);
 
-            Log.e(TAG, "REQCAMw:"+REQ_CAMERA_WIDTH+"  REQCAMh:"+REQ_CAMERA_HEIGHT);
+            //Log.e(TAG, "REQCAMw:"+REQ_CAMERA_WIDTH+"  REQCAMh:"+REQ_CAMERA_HEIGHT);
 
 
             Looper.loop();
@@ -996,7 +987,7 @@ public class TextureFromCameraActivity extends Activity
                 // bit of reallocating if a surface-changed message arrives.
                 mWindowSurfaceWidth = mWindowSurface.getWidth();
                 mWindowSurfaceHeight = mWindowSurface.getHeight();
-                Log.e(TAG, "camW:" + mWindowSurfaceWidth + " camH:" + mWindowSurfaceHeight);
+                //Log.e(TAG, "camW:" + mWindowSurfaceWidth + " camH:" + mWindowSurfaceHeight);
 
 
 
@@ -1023,10 +1014,10 @@ public class TextureFromCameraActivity extends Activity
             }
             */
 
-            Log.e(TAG,"starting Preview");
+            //Log.e(TAG,"starting Preview");
             mCamera.startPreview();
 
-            Log.e(TAG,"started Preview");
+            //Log.e(TAG,"started Preview");
 
         }
 
@@ -1060,13 +1051,54 @@ public class TextureFromCameraActivity extends Activity
             Camera.Parameters p = mCamera.getParameters();
             //p.setPreviewSize(procSize_.width, procSize_.height);
             Log.e("Preview Size set to:", "w:" + procSize_.width + " h:" + procSize_.height);
-            p.setPreviewFormat(ImageFormat.NV21);
+            //p.setPreviewFormat(ImageFormat.NV21);
+            p.setPreviewFormat(ImageFormat.YV12);//YUV - N21
+
             p.setPreviewFpsRange(targetMaxFrameRate, targetMinFrameRate);
             mCamera.setParameters(p);
 
+            //
+            int previewFormat=p.getPreviewFormat();
+            int bitsperpixel=ImageFormat.getBitsPerPixel(previewFormat);
+            Log.e(TAG, "bits per pixel = "+bitsperpixel);
+            double byteperpixel=(double) bitsperpixel/8;
+            Log.e(TAG, "bytes per pixel = "+byteperpixel);
+            Camera.Size camerasize=p.getPreviewSize();
+            int bufSize= (int) Math.ceil(((camerasize.width*camerasize.height)*byteperpixel));
+
+            //
             PixelFormat pixelFormat = new PixelFormat();
-            PixelFormat.getPixelFormatInfo(ImageFormat.NV21, pixelFormat);
-            int bufSize = procSize_.width * procSize_.height * pixelFormat.bitsPerPixel / 8;
+            //PixelFormat.getPixelFormatInfo(ImageFormat.NV21, pixelFormat);
+            //PixelFormat.getPixelFormatInfo(ImageFormat.YV12, pixelFormat); //YUV - N21
+
+            /*
+            Log.println(Log.ASSERT,"BITSPERPIXEL=", ""+pixelFormat.bitsPerPixel);
+            Log.e("BITSPERPIXEL=", ""+pixelFormat.bitsPerPixel);
+            Log.d("BITSPERPIXEL=", ""+pixelFormat.bitsPerPixel);
+            Log.i("BITSPERPIXEL=", ""+pixelFormat.bitsPerPixel);
+            Log.v("BITSPERPIXEL=", ""+pixelFormat.bitsPerPixel);
+            Log.w("BITSPERPIXEL=", ""+pixelFormat.bitsPerPixel);
+            Log.wtf("BITSPERPIXEL=", ""+pixelFormat.bitsPerPixel);
+            */
+
+            //calculate bufsize for YV12 ImageFormat
+
+
+            /*
+            int yStride   = (int) Math.ceil(procSize_.width / 16.0) * 16;
+            int uvStride  = (int) Math.ceil( (yStride / 2) / 16.0) * 16;
+            int ySize     = yStride * procSize_.height;
+            int uvSize    = uvStride * procSize_.height / 2;
+            //int yRowIndex = yStride * y;
+            //int uRowIndex = ySize + uvSize + uvStride * c;
+            //int vRowIndex = ySize + uvStride * c;
+            //int bufSize      = ySize + uvSize * 2;
+            */
+            //int bufSize = 1382400;
+
+            //int bufSize = procSize_.width * procSize_.height * pixelFormat.bitsPerPixel / 8;
+            //int bufSize = procSize_.width * procSize_.height * (3/2);
+
             byte[] buffer = null;
             for (int i = 0; i < bufNumber; i++) {
                 buffer = new byte[bufSize];
@@ -1107,7 +1139,7 @@ public class TextureFromCameraActivity extends Activity
          * be called.
          */
         private void surfaceChanged(int width, int height) {
-            Log.e(TAG, "RenderThread surfaceChanged w:" + width + " h:" + height);
+            //Log.e(TAG, "RenderThread surfaceChanged w:" + width + " h:" + height);
 
 
             mWindowSurfaceWidth = width;
@@ -1122,7 +1154,7 @@ public class TextureFromCameraActivity extends Activity
         private void surfaceDestroyed() {
             // In practice this never appears to be called -- the activity is always paused
             // before the surface is destroyed.  In theory it could be called though.
-            Log.d(TAG, "RenderThread surfaceDestroyed");
+            //Log.d(TAG, "RenderThread surfaceDestroyed");
             releaseGl();
         }
 
@@ -1133,12 +1165,11 @@ public class TextureFromCameraActivity extends Activity
          */
         private void finishSurfaceSetup() {
 
-            Log.e(TAG, "finishSurfaceSetup start");
+            //Log.e(TAG, "finishSurfaceSetup start");
 
             int width = mWindowSurfaceWidth;
             int height = mWindowSurfaceHeight;
-            Log.e(TAG, "finishSurfaceSetup size=" + width + "x" + height +
-                    " camera=" + mCameraPreviewWidth + "x" + mCameraPreviewHeight);
+            //Log.e(TAG, "finishSurfaceSetup size=" + width + "x" + height +" camera=" + mCameraPreviewWidth + "x" + mCameraPreviewHeight);
 
             // Use full window.
             GLES20.glViewport(0, 0, width, height);
@@ -1160,11 +1191,11 @@ public class TextureFromCameraActivity extends Activity
             }
 
 
-            Log.e(TAG,"starting Preview");
+            //Log.e(TAG,"starting Preview");
             mCamera.startPreview();
-            Log.e(TAG,"started Preview");
+            //Log.e(TAG,"started Preview");
 
-            Log.e(TAG, "finishSurfaceSetup end");
+            //Log.e(TAG, "finishSurfaceSetup end");
         }
 
         /**
@@ -1254,7 +1285,7 @@ public class TextureFromCameraActivity extends Activity
          */
         private void openCamera(int desiredWidth, int desiredHeight, int desiredFps) {
 
-            Log.e(TAG, "openCamera start");
+            //Log.e(TAG, "openCamera start");
 
 
             if (mCamera != null) {
@@ -1329,7 +1360,7 @@ public class TextureFromCameraActivity extends Activity
 
 
 
-            Log.e(TAG, "openCamera end");
+            //Log.e(TAG, "openCamera end");
         }
 
         /**
@@ -1589,6 +1620,43 @@ public class TextureFromCameraActivity extends Activity
     }
 
 
+
+    private class StreamingThread extends Thread{
+
+
+        private Handler streamerHandler;
+
+        public StreamingThread(){
+
+
+        }
+
+        @Override
+        public void run() {
+
+            Looper.prepare();
+
+            // We need to create the Handler before reporting ready.
+            streamingHandler = new Handler(new Handler.Callback() {
+                @Override
+                public boolean handleMessage(Message msg) {
+
+                    final int readIndex = msg.arg1;
+
+                    doStreaming2(readIndex);
+
+                    return true;
+                }
+            });
+
+
+            Looper.loop();
+
+        }
+
+    }
+
+
     private void doStreaming2(int readIndex) {
 
 
@@ -1597,12 +1665,12 @@ public class TextureFromCameraActivity extends Activity
 
             MediaBlock targetBlock = mediaBlocks[readIndex];
             if (targetBlock == null) {
-                Log.e(TAG, "M48, null mediablock, thread yield");
+                //Log.e(TAG, "M48, null mediablock, thread yield");
                 Thread.yield();
             } else if (targetBlock != null)
                 if (targetBlock.flag == 1) {
 
-                    Log.e(TAG, "doStreaming: flag=1");
+                    //Log.e(TAG, "doStreaming: flag=1");
 
                     // HERE IS THE PROBLEM
                     /*
@@ -1630,12 +1698,12 @@ public class TextureFromCameraActivity extends Activity
 
             MediaBlock targetBlock = mediaBlocks[mediaReadIndex];
             if (targetBlock == null) {
-                Log.e(TAG, "M48, null mediablock, thread yield");
+                //Log.e(TAG, "M48, null mediablock, thread yield");
                 Thread.yield();
             } else if (targetBlock != null)
                 if (targetBlock.flag == 1) {
 
-                    Log.e(TAG, "doStreaming: flag=1");
+                    //Log.e(TAG, "doStreaming: flag=1");
 
                     // HERE IS THE PROBLEM
                     /*
@@ -1723,11 +1791,11 @@ public class TextureFromCameraActivity extends Activity
 
         int picWidth = mCameraPreviewWidth;//cameraView.Width();
         int picHeight = mCameraPreviewHeight;//cameraView.Height();
-        Log.e("doVideoEncode","picWidth:"+picWidth+" picHeight:"+picHeight);
+        //Log.e("doVideoEncode","picWidth:"+picWidth+" picHeight:"+picHeight);
 
         int size = /*frame.length;*/picWidth*picHeight + picWidth*picHeight/2;
 
-        Log.e(TAG, "fr.len="+frame.length + "  !=   size="+size);
+        //Log.e(TAG, "fr.len="+frame.length + "  !=   size="+size);
 
         System.arraycopy(frame, 0, yuvFrame, 0, size);
 
@@ -1804,9 +1872,9 @@ public class TextureFromCameraActivity extends Activity
 
                     if (changeBlock == true) {
                         currentBlock.flag = 1;
-                        Log.e(TAG,"NEW BLOCK ENCODED");
+                        //Log.e(TAG,"NEW BLOCK ENCODED");
 
-                        if(streamingHandler!=null) {
+                        if(streamingServer!=null && streamingServer.inStreaming==true && streamingHandler!=null) {
                             Message streamMex = new Message();
                             streamMex.arg1=mediaWriteIndex;
                             streamingHandler.sendMessage(streamMex);
@@ -1872,7 +1940,7 @@ public class TextureFromCameraActivity extends Activity
                 long intv = newTime - INTERVAL;
                 INTERVAL = newTime;
 
-                Log.e(TAG, "sending:" + length + " byte. TIMEINMILLIS:" + intv);//mediaSocket.send("camW:"+mCameraPreviewWidth+" camH:"+mCameraPreviewHeight);
+                //Log.e(TAG, "sending:" + length + " byte. TIMEINMILLIS:" + intv);//mediaSocket.send("camW:"+mCameraPreviewWidth+" camH:"+mCameraPreviewHeight);
 
             }
 
