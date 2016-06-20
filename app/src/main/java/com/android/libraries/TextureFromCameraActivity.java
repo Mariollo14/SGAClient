@@ -167,7 +167,7 @@ public class TextureFromCameraActivity extends Activity
 
 
     //EYE
-    private final int ServerPort = 8080;
+    //private final int ServerPort = 8080;
     private final int StreamingPort = 8088;
     private final int PictureWidth = 480;
     private final int PictureHeight = 360;
@@ -269,7 +269,38 @@ public class TextureFromCameraActivity extends Activity
 
         showIpAddress();
 
+
+        try {
+            streamingServer = new StreamingServer(StreamingPort);
+            streamingServer.start();
+            Log.e("Server Started:", streamingServer.getAddress().getHostString());
+
+
+        } catch (UnknownHostException e) {
+            return;
+        }
+
+        streamingHandler = new Handler(new Handler.Callback() {
+            @Override
+            public boolean handleMessage(Message msg) {
+
+                final int readIndex = msg.arg1;
+                Runnable r = new Runnable() {
+                    @Override
+                    public void run() {
+
+                        doStreaming2(readIndex);
+                    }
+                };
+
+                new Thread(r).start();
+                return true;
+            }
+        });
+
+        /*
         streamingHandler = new Handler();
+
         streamingHandler.postDelayed(new Runnable() {
             @Override
             public void run() {
@@ -277,7 +308,7 @@ public class TextureFromCameraActivity extends Activity
                 doStreaming();
             }
         }, StreamingInterval);
-
+        */
 
         requestCameraPermission();
     }
@@ -305,12 +336,14 @@ public class TextureFromCameraActivity extends Activity
         mySensorFusion.initListeners();
         //try catch mario
         //try {
+
         mRenderThread = new RenderThread(mHandler);
         mRenderThread.setName("TexFromCam Render");
         mRenderThread.start();
         mRenderThread.waitUntilReady();
 
         RenderHandler rh = mRenderThread.getHandler();
+
             /*
             mario
             rh.sendZoomValue(mZoomBar.getProgress());
@@ -328,6 +361,7 @@ public class TextureFromCameraActivity extends Activity
         //Toast.makeText(getApplicationContext(), "Data lost due to excess use of other apps", Toast.LENGTH_LONG).show();
         //}
 
+        /*
         try {
             streamingServer = new StreamingServer(StreamingPort);
             streamingServer.start();
@@ -337,6 +371,7 @@ public class TextureFromCameraActivity extends Activity
         } catch (UnknownHostException e) {
             return;
         }
+        */
 
     }
 
@@ -889,7 +924,11 @@ public class TextureFromCameraActivity extends Activity
 
             // Prepare EGL and open the camera before we start handling messages.
             mEglCore = new EglCore(null, 0);
+
             openCamera(REQ_CAMERA_WIDTH, REQ_CAMERA_HEIGHT, REQ_CAMERA_FPS);
+
+            Log.e(TAG, "REQCAMw:"+REQ_CAMERA_WIDTH+"  REQCAMh:"+REQ_CAMERA_HEIGHT);
+
 
             Looper.loop();
 
@@ -936,6 +975,8 @@ public class TextureFromCameraActivity extends Activity
          * Handles the surface-created callback from SurfaceView.  Prepares GLES and the Surface.
          */
         private void surfaceAvailable(SurfaceHolder holder, boolean newSurface) {
+
+
             Surface surface = holder.getSurface();
             mWindowSurface = new WindowSurface(mEglCore, surface, false);
             mWindowSurface.makeCurrent();
@@ -956,6 +997,9 @@ public class TextureFromCameraActivity extends Activity
                 mWindowSurfaceWidth = mWindowSurface.getWidth();
                 mWindowSurfaceHeight = mWindowSurface.getHeight();
                 Log.e(TAG, "camW:" + mWindowSurfaceWidth + " camH:" + mWindowSurfaceHeight);
+
+
+
                 finishSurfaceSetup();
             }
 
@@ -964,10 +1008,14 @@ public class TextureFromCameraActivity extends Activity
             //EYE
             //onCameraReady fragment
             mCamera.stopPreview();
+
             Camera.Size chosenSize = setupCamera(PictureWidth, PictureHeight, 4, 25.0, previewCb);
             Log.e(TAG, "camW:" + chosenSize.width + " camH:" + chosenSize.height);
+
             //nativeInitMediaEncoder(cameraView.getWidth(), cameraView.getHeight());
+
             nativeInitMediaEncoder(chosenSize.width, chosenSize.height);//M48 remember using nativeReleaseMediaEncoder
+
             /*
             List<Camera.Size> sizes = mCamera.getParameters().getSupportedPreviewSizes();
             for(Camera.Size size : sizes){
@@ -975,7 +1023,10 @@ public class TextureFromCameraActivity extends Activity
             }
             */
 
+            Log.e(TAG,"starting Preview");
             mCamera.startPreview();
+
+            Log.e(TAG,"started Preview");
 
         }
 
@@ -1007,7 +1058,7 @@ public class TextureFromCameraActivity extends Activity
             int targetMinFrameRate = supportedFrameRate.get(targetIndex)[1];
 
             Camera.Parameters p = mCamera.getParameters();
-            p.setPreviewSize(procSize_.width, procSize_.height);
+            //p.setPreviewSize(procSize_.width, procSize_.height);
             Log.e("Preview Size set to:", "w:" + procSize_.width + " h:" + procSize_.height);
             p.setPreviewFormat(ImageFormat.NV21);
             p.setPreviewFpsRange(targetMaxFrameRate, targetMinFrameRate);
@@ -1058,8 +1109,10 @@ public class TextureFromCameraActivity extends Activity
         private void surfaceChanged(int width, int height) {
             Log.e(TAG, "RenderThread surfaceChanged w:" + width + " h:" + height);
 
+
             mWindowSurfaceWidth = width;
             mWindowSurfaceHeight = height;
+
             finishSurfaceSetup();
         }
 
@@ -1079,6 +1132,9 @@ public class TextureFromCameraActivity extends Activity
          * Open the camera (to set mCameraAspectRatio) before calling here.
          */
         private void finishSurfaceSetup() {
+
+            Log.e(TAG, "finishSurfaceSetup start");
+
             int width = mWindowSurfaceWidth;
             int height = mWindowSurfaceHeight;
             Log.e(TAG, "finishSurfaceSetup size=" + width + "x" + height +
@@ -1102,7 +1158,13 @@ public class TextureFromCameraActivity extends Activity
             } catch (IOException ioe) {
                 throw new RuntimeException(ioe);
             }
+
+
+            Log.e(TAG,"starting Preview");
             mCamera.startPreview();
+            Log.e(TAG,"started Preview");
+
+            Log.e(TAG, "finishSurfaceSetup end");
         }
 
         /**
@@ -1192,6 +1254,8 @@ public class TextureFromCameraActivity extends Activity
          */
         private void openCamera(int desiredWidth, int desiredHeight, int desiredFps) {
 
+            Log.e(TAG, "openCamera start");
+
 
             if (mCamera != null) {
                 throw new RuntimeException("camera already initialized");
@@ -1230,7 +1294,8 @@ public class TextureFromCameraActivity extends Activity
             supportedFrameRate = parms.getSupportedPreviewFpsRange();
             supportedSizes = parms.getSupportedPreviewSizes();
             procSize_ = supportedSizes.get(supportedSizes.size() / 2);
-            //p.setPreviewSize(procSize_.width, procSize_.height);
+            //SUPPORTED SIZES!
+            parms.setPreviewSize(procSize_.width, procSize_.height);
             mCamera.setPreviewCallbackWithBuffer(null);
 
 
@@ -1261,6 +1326,10 @@ public class TextureFromCameraActivity extends Activity
             mCameraPreviewHeight = mCameraPreviewSize.height;
             mMainHandler.sendCameraParams(mCameraPreviewWidth, mCameraPreviewHeight,
                     thousandFps / 1000.0f);
+
+
+
+            Log.e(TAG, "openCamera end");
         }
 
         /**
@@ -1520,6 +1589,39 @@ public class TextureFromCameraActivity extends Activity
     }
 
 
+    private void doStreaming2(int readIndex) {
+
+
+            //Log.e(TAG,"doStreaming");
+
+
+            MediaBlock targetBlock = mediaBlocks[readIndex];
+            if (targetBlock == null) {
+                Log.e(TAG, "M48, null mediablock, thread yield");
+                Thread.yield();
+            } else if (targetBlock != null)
+                if (targetBlock.flag == 1) {
+
+                    Log.e(TAG, "doStreaming: flag=1");
+
+                    // HERE IS THE PROBLEM
+                    /*
+                    long newtmill= System.currentTimeMillis();
+                    long mill = newtmill - tmill;
+                    tmill=newtmill;
+                    Log.e("Thread run interval:", ""+mill);
+                    */
+
+                    streamingServer.sendMedia(targetBlock.data(), targetBlock.length());
+                    targetBlock.reset();
+
+                }
+
+
+
+    }
+
+
     private void doStreaming() {
 
         synchronized (TextureFromCameraActivity.this) {
@@ -1593,8 +1695,6 @@ public class TextureFromCameraActivity extends Activity
     //
     private PreviewCallback previewCb = new PreviewCallback() {
 
-        private int PREVIEW_FRAME_LIMIT = 10;
-
 
         public void onPreviewFrame(byte[] frame, Camera c) {
 
@@ -1623,8 +1723,12 @@ public class TextureFromCameraActivity extends Activity
 
         int picWidth = mCameraPreviewWidth;//cameraView.Width();
         int picHeight = mCameraPreviewHeight;//cameraView.Height();
-        //Log.e("doVideoEncode","picWidth:"+picWidth+" picHeight:"+picHeight);
-        int size = frame.length; //TESTM48 picWidth*picHeight + picWidth*picHeight/2;
+        Log.e("doVideoEncode","picWidth:"+picWidth+" picHeight:"+picHeight);
+
+        int size = /*frame.length;*/picWidth*picHeight + picWidth*picHeight/2;
+
+        Log.e(TAG, "fr.len="+frame.length + "  !=   size="+size);
+
         System.arraycopy(frame, 0, yuvFrame, 0, size);
 
 
@@ -1700,7 +1804,13 @@ public class TextureFromCameraActivity extends Activity
 
                     if (changeBlock == true) {
                         currentBlock.flag = 1;
-                        //Log.e(TAG,"NEW BLOCK ENCODED");
+                        Log.e(TAG,"NEW BLOCK ENCODED");
+
+                        if(streamingHandler!=null) {
+                            Message streamMex = new Message();
+                            streamMex.arg1=mediaWriteIndex;
+                            streamingHandler.sendMessage(streamMex);
+                        }
                         mediaWriteIndex++;
                         if (mediaWriteIndex >= MediaBlockNumber) {
                             mediaWriteIndex = 0;
