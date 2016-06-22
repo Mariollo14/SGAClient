@@ -172,10 +172,10 @@ public class TextureFromCameraActivity extends Activity
     private final int StreamingPort = 8088;
     private final int PictureWidth = 480;
     private final int PictureHeight = 360;
-    private static final int MediaBlockNumber = 10;
-    private static final int MediaBlockSize = 1024 * 512;
+    private static final int MediaBlockNumber = 3;
+    private static final int MediaBlockSize = 1024 * 512;//131072;
     private final int EstimatedFrameNumber = 1;//30;
-    private final int StreamingInterval = 3;//100;
+    private final int StreamingInterval = 10;//100;
     // EYE
     private StreamingServer streamingServer = null;
     ExecutorService executor = Executors.newFixedThreadPool(3);
@@ -288,6 +288,7 @@ public class TextureFromCameraActivity extends Activity
 
         streamingThread = new StreamingThread();
         streamingThread.start();
+
         /*
         streamingHandler = new Handler();
 
@@ -300,8 +301,9 @@ public class TextureFromCameraActivity extends Activity
         }, StreamingInterval);
         */
 
-        requestCameraPermission();
+
     }
+
 
 
 
@@ -322,6 +324,8 @@ public class TextureFromCameraActivity extends Activity
     protected void onResume() {
 
         super.onResume();
+
+        requestCameraPermission();
         mGLView.onResume();
         myLocator.requestLocationUpdate();
         mySensorFusion.initListeners();
@@ -1051,8 +1055,8 @@ public class TextureFromCameraActivity extends Activity
             Camera.Parameters p = mCamera.getParameters();
             //p.setPreviewSize(procSize_.width, procSize_.height);
             Log.e("Preview Size set to:", "w:" + procSize_.width + " h:" + procSize_.height);
-            //p.setPreviewFormat(ImageFormat.NV21);
-            p.setPreviewFormat(ImageFormat.YV12);//YUV - N21
+            p.setPreviewFormat(ImageFormat.NV21);
+            //p.setPreviewFormat(ImageFormat.YV12);//YUV - N21
 
             p.setPreviewFpsRange(targetMaxFrameRate, targetMinFrameRate);
             mCamera.setParameters(p);
@@ -1610,8 +1614,8 @@ public class TextureFromCameraActivity extends Activity
         if (ipAddr == null) {
             tv.setText(getString(R.string.msg_wifi_error));
         } else {
-            Log.e("IPADDRESS:", getString(R.string.msg_access_local) + " http://" + ipAddr + ":8080");
-            tv.setText(getString(R.string.msg_access_local) + " http://" + ipAddr + ":8080");
+            Log.e("IPADDRESS:", getString(R.string.msg_access_local) + " http://" + ipAddr + ":"+StreamingPort);
+            tv.setText(getString(R.string.msg_access_local) + " http://" + ipAddr + ":"+StreamingPort);
             return true;
             //tv.setText(getString(R.string.msg_port_error));
         }
@@ -1661,7 +1665,12 @@ public class TextureFromCameraActivity extends Activity
 
 
             //Log.e(TAG,"doStreaming");
-
+            /*
+            long newtmill= System.currentTimeMillis();
+            long mill = newtmill - tmill;
+            tmill=newtmill;
+            Log.e("Thread run interval:", ""+mill);
+            */
 
             MediaBlock targetBlock = mediaBlocks[readIndex];
             if (targetBlock == null) {
@@ -1777,6 +1786,8 @@ public class TextureFromCameraActivity extends Activity
                 if (streamingServer.inStreaming == true)
                     doVideoEncode(frame);
 
+
+
             c.addCallbackBuffer(frame);
             previewLock.unlock();
         }
@@ -1797,6 +1808,7 @@ public class TextureFromCameraActivity extends Activity
 
         //Log.e(TAG, "fr.len="+frame.length + "  !=   size="+size);
 
+
         System.arraycopy(frame, 0, yuvFrame, 0, size);
 
 
@@ -1809,6 +1821,7 @@ public class TextureFromCameraActivity extends Activity
 
     //EYE
     private class VideoEncodingTask implements Runnable {
+
         private byte[] resultNal = new byte[1024 * 1024];
         private byte[] videoHeader = new byte[8];
 
@@ -1853,6 +1866,9 @@ public class TextureFromCameraActivity extends Activity
 
             synchronized (TextureFromCameraActivity.this) {
 
+                //veloce
+
+
 
                 if (currentBlock.flag == 0) {
                     boolean changeBlock = false;
@@ -1862,6 +1878,8 @@ public class TextureFromCameraActivity extends Activity
                         currentBlock.writeVideo(resultNal, ret);
                     } else {
                         changeBlock = true;
+
+                        //lento
                     }
 
                     if (changeBlock == false) {
@@ -1874,15 +1892,25 @@ public class TextureFromCameraActivity extends Activity
                         currentBlock.flag = 1;
                         //Log.e(TAG,"NEW BLOCK ENCODED");
 
+                        //lento
+
+
                         if(streamingServer!=null && streamingServer.inStreaming==true && streamingHandler!=null) {
                             Message streamMex = new Message();
                             streamMex.arg1=mediaWriteIndex;
+                            Log.e(TAG, "encoded ready to stream block:"+ mediaWriteIndex);
+
+
+                            //LENTO
+
                             streamingHandler.sendMessage(streamMex);
                         }
+
                         mediaWriteIndex++;
                         if (mediaWriteIndex >= MediaBlockNumber) {
                             mediaWriteIndex = 0;
                         }
+
                     }
                 }
 
@@ -1933,15 +1961,17 @@ public class TextureFromCameraActivity extends Activity
             }
 
             if (inStreaming == true) {
+
                 mediaSocket.send(buf);
                 ret = true;
 
+                /*
                 long newTime = System.currentTimeMillis();
                 long intv = newTime - INTERVAL;
                 INTERVAL = newTime;
 
-                //Log.e(TAG, "sending:" + length + " byte. TIMEINMILLIS:" + intv);//mediaSocket.send("camW:"+mCameraPreviewWidth+" camH:"+mCameraPreviewHeight);
-
+                Log.e(TAG, "sending:" + length + " byte. TIMEINMILLIS:" + intv);//mediaSocket.send("camW:"+mCameraPreviewWidth+" camH:"+mCameraPreviewHeight);
+                */
             }
 
             return ret;
