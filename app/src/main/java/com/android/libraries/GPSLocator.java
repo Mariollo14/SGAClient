@@ -65,13 +65,13 @@ public class GPSLocator implements LocationListener {
     public void stopUsingGPS() {
         try {
             if (locationManager != null) {
-                checkPermissions();
                 locationManager.removeUpdates(GPSLocator.this);
             }
 
         }
         catch(SecurityException se){
-            this.checkPermissions();
+            //this.checkPermissions();
+            se.printStackTrace();
         }
     }
 
@@ -134,7 +134,7 @@ public class GPSLocator implements LocationListener {
                 // If GPS enabled, get latitude/longitude using GPS Services
                 if (isGPSEnabled) {
                     if (location == null) {
-                        checkPermissions();
+                        //checkPermissions();
 
                             locationManager.requestLocationUpdates(
                                     LocationManager.GPS_PROVIDER,
@@ -173,7 +173,8 @@ public class GPSLocator implements LocationListener {
             }
         }
         catch(SecurityException se){
-            checkPermissions();
+            se.printStackTrace();
+            //checkPermissions();
         }
         catch (Exception e) {
             e.printStackTrace();
@@ -182,60 +183,6 @@ public class GPSLocator implements LocationListener {
         return location;
     }
 
-    public void checkPermissions(){
-        if (ContextCompat.checkSelfPermission(activity,
-                Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
-                ) {
-
-            if (ActivityCompat.shouldShowRequestPermissionRationale(activity,
-                    Manifest.permission.ACCESS_FINE_LOCATION)) {
-
-                // Show an expanation to the user *asynchronously* -- don't block
-                // this thread waiting for the user's response! After the user
-                // sees the explanation, try again to request the permission.
-
-            }
-            else {
-
-                // No explanation needed, we can request the permission.
-
-                ActivityCompat.requestPermissions(activity,
-                        new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
-                        activity.REQUEST_FINE_LOC);
-
-                // MY_PERMISSIONS_REQUEST_READ_CONTACTS is an
-                // app-defined int constant. The callback method gets the
-                // result of the request.
-            }
-        }
-
-        if (ContextCompat.checkSelfPermission(activity,
-                Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED
-                ) {
-
-            if (ActivityCompat.shouldShowRequestPermissionRationale(activity,
-                    Manifest.permission.ACCESS_COARSE_LOCATION)) {
-
-                // Show an expanation to the user *asynchronously* -- don't block
-                // this thread waiting for the user's response! After the user
-                // sees the explanation, try again to request the permission.
-
-
-            }
-            else {
-
-                // No explanation needed, we can request the permission.
-
-                ActivityCompat.requestPermissions(activity,
-                        new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
-                        activity.REQUEST_COARSE_LOC);
-
-                // MY_PERMISSIONS_REQUEST_READ_CONTACTS is an
-                // app-defined int constant. The callback method gets the
-                // result of the request.
-            }
-        }
-    }
 
 
     /**

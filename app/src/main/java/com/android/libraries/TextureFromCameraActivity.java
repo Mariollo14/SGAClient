@@ -104,18 +104,6 @@ public class TextureFromCameraActivity extends Activity
         implements SurfaceHolder.Callback/*,SeekBar.OnSeekBarChangeListener*/ {
     public static final String TAG = "TextureCameraActivity";/////MainActivity.TAG;
 
-    /*
-    The following constants are used to identify permission request by onRequestPermissionResult callback
-    */
-    //Id to identify fine location permission request.
-    public static final int REQUEST_FINE_LOC = 0;
-    //Id to identify coarse location permission request.
-    public static final int REQUEST_COARSE_LOC = 1;
-    //Id to identify a camera permission request.
-    private static final int REQUEST_CAMERA = 2;
-    //Id to identify a camera permission request.
-    private static final int REQUEST_INTERNET = 3;
-
 
     private static final int DEFAULT_ZOOM_PERCENT = 0;      // 0-100
     private static final int DEFAULT_SIZE_PERCENT = 100;     // 0-100
@@ -269,7 +257,7 @@ public class TextureFromCameraActivity extends Activity
         rl.addView(mGLView);
         rl.addView(tmptv);
 
-        requestInternetPermission();
+
 
         showIpAddress();
 
@@ -325,7 +313,7 @@ public class TextureFromCameraActivity extends Activity
 
         super.onResume();
 
-        requestCameraPermission();
+
         mGLView.onResume();
         myLocator.requestLocationUpdate();
         mySensorFusion.initListeners();
@@ -391,154 +379,6 @@ public class TextureFromCameraActivity extends Activity
         }
     }
 
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode,
-                                           String permissions[], int[] grantResults) {
-        switch (requestCode) {
-            case REQUEST_FINE_LOC: {
-                // If request is cancelled, the result arrays are empty.
-                if (grantResults.length > 0
-                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-
-                    // permission was granted, yay! Do the
-                    // contacts-related task you need to do.
-
-                } else {
-                    Log.e(TAG, "Fine Location Permission denied. Handle it at onRequestPermissionResult");
-                    // permission denied, boo! Disable the
-                    // functionality that depends on this permission.
-                    onPause();
-                    finish();
-
-                }
-                //return;
-            }
-            break;
-            case REQUEST_COARSE_LOC: {
-                // If request is cancelled, the result arrays are empty.
-                if (grantResults.length > 0
-                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-
-                    // permission was granted, yay!
-
-                } else {
-                    Log.e(TAG, "Coarse Location Permission denied. Handle it at onRequestPermissionResult");
-                    // permission denied, boo! Disable the
-                    // functionality that depends on this permission.
-                    onPause();
-                    finish();
-                }
-                //return;
-            }
-            break;
-            case REQUEST_CAMERA: {
-                // If request is cancelled, the result arrays are empty.
-                if (grantResults.length > 0
-                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-
-                    // permission was granted, yay!
-
-                } else {
-
-                    Log.e(TAG, "Camera Permission denied. Handle it at onRequestPermissionResult");
-                    // permission denied, boo! Disable the
-                    // functionality that depends on this permission.
-                    onPause();
-                    finish();
-                }
-                //return;
-            }
-            break;
-            case REQUEST_INTERNET: {
-                // If request is cancelled, the result arrays are empty.
-                if (grantResults.length > 0
-                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-
-                    // permission was granted, yay!
-
-                } else {
-
-                    Log.e(TAG, "INTERNET Permission denied. Handle it at onRequestPermissionResult");
-                    // permission denied, boo! Disable the
-                    // functionality that depends on this permission.
-                    onPause();
-                    finish();
-                }
-                //return;
-            }
-            break;
-
-            // other 'case' lines to check for other
-            // permissions this app might request
-        }
-    }
-
-
-    private void requestCameraPermission() {
-
-        // Here, thisActivity is the current activity
-        if (ContextCompat.checkSelfPermission(TextureFromCameraActivity.this,
-                Manifest.permission.CAMERA)
-                != PackageManager.PERMISSION_GRANTED) {
-
-            // Should we show an explanation?
-            if (ActivityCompat.shouldShowRequestPermissionRationale(TextureFromCameraActivity.this,
-                    Manifest.permission.CAMERA)) {
-
-                // Show an expanation to the user *asynchronously* -- don't block
-                // this thread waiting for the user's response! After the user
-                // sees the explanation, try again to request the permission.
-
-            } else {
-
-                // No explanation needed, we can request the permission.
-
-                ActivityCompat.requestPermissions(TextureFromCameraActivity.this,
-                        new String[]{Manifest.permission.CAMERA},
-                            /*MY_PERMISSIONS_REQUEST_READ_CONTACTS*/
-                        REQUEST_CAMERA);
-
-                // MY_PERMISSIONS_REQUEST_READ_CONTACTS is an
-                // app-defined int constant. The callback method gets the
-                // result of the request.
-            }
-        }
-
-    }
-
-
-    private void requestInternetPermission() {
-
-        // Here, thisActivity is the current activity
-        if (ContextCompat.checkSelfPermission(TextureFromCameraActivity.this,
-                Manifest.permission.INTERNET)
-                != PackageManager.PERMISSION_GRANTED) {
-
-            // Should we show an explanation?
-            if (ActivityCompat.shouldShowRequestPermissionRationale(TextureFromCameraActivity.this,
-                    Manifest.permission.INTERNET)) {
-
-                // Show an expanation to the user *asynchronously* -- don't block
-                // this thread waiting for the user's response! After the user
-                // sees the explanation, try again to request the permission.
-
-            } else {
-
-                // No explanation needed, we can request the permission.
-
-                ActivityCompat.requestPermissions(TextureFromCameraActivity.this,
-                        new String[]{Manifest.permission.INTERNET},
-                            /*MY_PERMISSIONS_REQUEST_READ_CONTACTS*/
-                        REQUEST_INTERNET);
-
-                // MY_PERMISSIONS_REQUEST_READ_CONTACTS is an
-                // app-defined int constant. The callback method gets the
-                // result of the request.
-            }
-        }
-
-    }
 
 
     @Override   // SurfaceHolder.Callback
@@ -638,7 +478,9 @@ public class TextureFromCameraActivity extends Activity
      */
     public boolean onTouchEvent(MotionEvent e) {
 
+        jpctWorldManager.getCameraPosition();
 
+        /*
         if (e.getAction() == MotionEvent.ACTION_DOWN) {
             //xpos = e.getX();
             //ypos = e.getY();
@@ -654,6 +496,7 @@ public class TextureFromCameraActivity extends Activity
         if (e.getAction() == MotionEvent.ACTION_MOVE) {
             return true;
         }
+        */
         return super.onTouchEvent(e);
         /*
         mario
@@ -692,6 +535,21 @@ public class TextureFromCameraActivity extends Activity
             @Override
             public void run() {
                 jpctWorldManager.setRPHCam(rollA, pitchA, headA, facedown);
+            }
+        });
+
+    }
+
+    /*
+    called by SensorFusion to provide orientationMatrix to JPCTWorldManager
+    */
+    public void onNewOrientationMatrixComputed(final float [] gyroMatrix) {
+
+
+        mGLView.queueEvent(new Runnable() {
+            @Override
+            public void run() {
+                jpctWorldManager.setRotationMatrix(gyroMatrix);
             }
         });
 
@@ -1219,7 +1077,7 @@ public class TextureFromCameraActivity extends Activity
 
             float zoomFactor = 1.0f - (mZoomPercent / 100.0f);
             //mario rotation changed
-            int rotAngle = -90;//Math.round(360 * (mRotatePercent / 100.0f));
+            int rotAngle = 0;//Math.round(360 * (mRotatePercent / 100.0f));
 
             mRect.setScale(newWidth, newHeight);
             mRect.setPosition(mPosX, mPosY);
@@ -1848,7 +1706,7 @@ public class TextureFromCameraActivity extends Activity
             int ret = nativeDoVideoEncode(yuvFrame, resultNal, intraFlag);
 
 
-            //Log.e(TAG,"Encoding");
+            Log.e(TAG,"Encoding ret:"+ret);
 
             if (ret <= 0) {
                 return;
@@ -1867,8 +1725,6 @@ public class TextureFromCameraActivity extends Activity
             synchronized (TextureFromCameraActivity.this) {
 
                 //veloce
-
-
 
                 if (currentBlock.flag == 0) {
                     boolean changeBlock = false;
@@ -2032,13 +1888,6 @@ public class TextureFromCameraActivity extends Activity
     }
 
 
-    public void makeToast(String s) {
-        Context context = getApplicationContext();
-        CharSequence text = s;
-        int duration = Toast.LENGTH_LONG;
 
-        Toast toast = Toast.makeText(context, text, duration);
-        toast.show();
-    }
 
 }

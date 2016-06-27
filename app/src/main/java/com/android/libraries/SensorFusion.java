@@ -431,6 +431,8 @@ public class SensorFusion implements SensorEventListener {
 
 
             int inclination = (int) Math.round(Math.toDegrees(Math.acos(rotationMatrix[8])));
+
+            activity.onNewOrientationMatrixComputed(gyroMatrix);
             activity.onNewOrientationAnglesComputed(f2f.floatValue(),f1f.floatValue(),f0f.floatValue(),inclination>90);
 
             // update sensor output GUI

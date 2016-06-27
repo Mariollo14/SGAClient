@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+xmlns:tools="http://schemas.android.com/tools"
+android:layout_width="match_parent"
+android:layout_height="match_parent"
+android:keepScreenOn="true"
+tools:context="com.android.libraries.StartActivity"
+android:id="@+id/relLay">
+
+
+<TextView
+    android:id="@+id/start_act_textv"
+    android:text="@string/wait_message"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:textColor="#3bbc17"
+    android:textColorHighlight="#82cd1e"
+    android:textSize="30dp"
+    android:layout_alignParentBottom="true"
+    android:layout_centerHorizontal="true"
+    android:layout_marginBottom="80dp"
+    android:clickable="false"/>
+
+</RelativeLayout>
