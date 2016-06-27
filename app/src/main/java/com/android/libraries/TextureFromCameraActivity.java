@@ -60,6 +60,7 @@ import android.hardware.Camera.PreviewCallback;
 import org.java_websocket.WebSocket;
 import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.server.WebSocketServer;
+import org.w3c.dom.Text;
 
 import javax.microedition.khronos.egl.EGL10;
 import javax.microedition.khronos.egl.EGLConfig;
@@ -123,7 +124,7 @@ public class TextureFromCameraActivity extends Activity
     private static SurfaceHolder sSurfaceHolder;
 
     private SurfaceView cameraView = null;
-    private TextView tmptv = null;
+    private TextView tmptv = null, LOCview = null, IPview = null;
     private GLSurfaceView mGLView;
     private boolean gl2 = true;
     private JPCTWorldManager jpctWorldManager = null;
@@ -136,6 +137,10 @@ public class TextureFromCameraActivity extends Activity
     // Receives messages from renderer thread.
     private MainHandler mHandler;
 
+
+    public MainHandler getMainHandler(){
+        return mHandler;
+    }
     /*
     // User controls.
     private SeekBar mZoomBar;
@@ -202,15 +207,17 @@ public class TextureFromCameraActivity extends Activity
 
         mHandler = new MainHandler(this);
 
-        cameraView = new SurfaceView(this);
+        setContentView(R.layout.activity_texture_from_camera);
+
+        cameraView = (SurfaceView) this.findViewById(R.id.surfaceViewCamera);//new SurfaceView(this);
         SurfaceHolder sh = cameraView.getHolder();
         sh.addCallback(this);
         sh.setFormat(PixelFormat.TRANSLUCENT);
 
-        tmptv = new TextView(this);
+        tmptv = (TextView) this.findViewById(R.id.orientationTV);//new TextView(this);
         tmptv.setBackgroundColor(PixelFormat.OPAQUE);
 
-        mGLView = new GLSurfaceView(this);
+        mGLView = (GLSurfaceView) this.findViewById(R.id.glsSurfaceViewOnTopOfCamera);//new GLSurfaceView(this);
         SurfaceHolder GLSsfOnTopHolder = mGLView.getHolder();
         GLSsfOnTopHolder.setFormat(PixelFormat.TRANSLUCENT);
 
@@ -248,15 +255,46 @@ public class TextureFromCameraActivity extends Activity
         mGLView.setRenderMode(GLSurfaceView.RENDERMODE_CONTINUOUSLY);
         mGLView.setZOrderOnTop(true);
 
-        setContentView(R.layout.activity_texture_from_camera);
-        // get your outer relative layout
+        //setContentView(R.layout.activity_texture_from_camera);
+
+        LOCview = (TextView)this.findViewById(R.id.localizationTV);
+        LOCview.setBackgroundColor(PixelFormat.OPAQUE);
+        LOCview.setText("LOCALIZATION");
+
+
+
+        IPview = (TextView)this.findViewById(R.id.ipaddressTV);
+        IPview.setBackgroundColor(PixelFormat.OPAQUE);
+        IPview.setText("IPADDRESS");
+
+
+
+        /*
         RelativeLayout rl = (RelativeLayout) this.findViewById(R.id.relLay);
         // inflate content layout and add it to the relative layout as second child
         // add as second child, therefore pass index 1 (0,1,...)
+
         rl.addView(cameraView);
         rl.addView(mGLView);
+
+        RelativeLayout.LayoutParams relativeParams = new RelativeLayout.LayoutParams(
+                RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT);
+        relativeParams.addRule(RelativeLayout.ALIGN_PARENT_TOP);
+
         rl.addView(tmptv);
 
+        LOCview = new TextView(this);
+        LOCview.setBackgroundColor(PixelFormat.OPAQUE);
+        LOCview.setText("LOCALIZATION");
+
+        rl.addView(LOCview);
+
+        IPview = new TextView(this);
+        IPview.setBackgroundColor(PixelFormat.OPAQUE);
+        IPview.setText("IPADDRESS");
+
+        rl.addView(IPview);
+        */
 
 
         showIpAddress();
@@ -599,13 +637,14 @@ public class TextureFromCameraActivity extends Activity
      * Receives messages from the renderer thread with UI-related updates, like the camera
      * parameters (which we show in a text message on screen).
      */
-    private static class MainHandler extends Handler {
+    public static class MainHandler extends Handler {
         private static final int MSG_SEND_CAMERA_PARAMS0 = 0;
         private static final int MSG_SEND_CAMERA_PARAMS1 = 1;
         private static final int MSG_SEND_RECT_SIZE = 2;
         private static final int MSG_SEND_ZOOM_AREA = 3;
         private static final int MSG_SEND_ROTATE_DEG = 4;
         private static final int MSG_SET_TEMP_TV = 5;
+        private static final int MSG_SET_LOCALIZATION = 6;
 
 
         private WeakReference<TextureFromCameraActivity> mWeakActivity;
@@ -658,6 +697,10 @@ public class TextureFromCameraActivity extends Activity
             sendMessage(obtainMessage(MSG_SEND_ROTATE_DEG, rot, 0));
         }
 
+        public void sendLocalization(String loc) {
+            sendMessage(obtainMessage(MSG_SET_LOCALIZATION, loc));
+        }
+
         @Override
         public void handleMessage(Message msg) {
             TextureFromCameraActivity activity = mWeakActivity.get();
@@ -703,6 +746,11 @@ public class TextureFromCameraActivity extends Activity
                     activity.yG = coors.getY();
                     activity.zG = coors.getZ();
                     activity.updateControls();
+                    break;
+                }
+                case MSG_SET_LOCALIZATION: {
+                    String loc = (String) msg.obj;
+                    activity.LOCview.setText(loc);
                     break;
                 }
                 default:
@@ -1465,15 +1513,15 @@ public class TextureFromCameraActivity extends Activity
         String ipAddr = wifiIpAddress(this);
 
 
-        TextView tv = (TextView) findViewById(R.id.tv_message);
+        //TextView tv = (TextView) findViewById(R.id.tv_message);
 
 
 
         if (ipAddr == null) {
-            tv.setText(getString(R.string.msg_wifi_error));
+            IPview.setText(getString(R.string.msg_wifi_error));
         } else {
             Log.e("IPADDRESS:", getString(R.string.msg_access_local) + " http://" + ipAddr + ":"+StreamingPort);
-            tv.setText(getString(R.string.msg_access_local) + " http://" + ipAddr + ":"+StreamingPort);
+            IPview.setText(getString(R.string.msg_access_local) + " http://" + ipAddr + ":"+StreamingPort);
             return true;
             //tv.setText(getString(R.string.msg_port_error));
         }

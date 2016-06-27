@@ -163,7 +163,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
                 txt = new Texture(64,64,new RGBColor(255, 255, 0));
 
                 txtManager.addTexture(id, txt);
-                int dim = 30;//(int) (500 / z);
+                int dim = 20;//(int) (500 / z);
 
                 Object3D cube = Primitives.getCube(dim);
 
@@ -192,19 +192,19 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
                 txt = new Texture(64,64,new RGBColor(223,115,255));
             }
             else if(id.equals("XAXIS")){
-                txt = new Texture(64,64,new RGBColor(0,0,255));//BLU
+                txt = new Texture(64,64,new RGBColor(0,0,255));//BLU MYSPOT
             }
             else if(id.equals("XAXISBACK")){
                 txt = new Texture(64,64,new RGBColor(179, 179, 255));
             }
             else if(id.equals("YAXIS")){
-                txt = new Texture(64,64,new RGBColor(255, 0, 0));//ROSSO
+                txt = new Texture(64,64,new RGBColor(255, 0, 0));//ROSSO MLN
             }
             else if(id.equals("YAXISBACK")){
                 txt = new Texture(64,64,new RGBColor(255, 179, 179));
             }
             else if(id.equals("ZAXIS")){
-                txt = new Texture(64,64,new RGBColor(0, 255, 0));//VERDE
+                txt = new Texture(64,64,new RGBColor(0, 255, 0));//VERDE su
             }
             else if(id.equals("ZAXISBACK")){
                 txt = new Texture(64,64,new RGBColor(179, 255, 179));
@@ -237,8 +237,9 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
 
         setUpWorld();
 
-        createCubesOnTheJPCTAxis();
+
         manageObjectsPositionUpdate();
+        createCubesOnTheJPCTAxis();
         //manageMovementUpdate();
         //world.getCamera().lookAt(fakeCubeOnZAxis.getTransformedCenter());
         //polyline disegnata sopra tutto il resto e non coinvolta nelle collisioni
@@ -260,8 +261,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
 
         //perform lights and transformations to stored object
         //manageMovementUpdate();
-        createCubesOnTheJPCTAxis();
-        manageObjectsPositionUpdate();
+
         //orientateCameraAlongZ();
         /*
         if(axis>2)axis=0;
@@ -288,7 +288,6 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
     // transform gps-points to the correspending screen-points on the android device
     public void createCubesOnTheJPCTAxis(){
 
-        //world.removeAllObjects();
 
         final Double DISTANCE = 25.0;
 
@@ -331,7 +330,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
     //distanza sull'asse
     public void manageObjectsPositionUpdate(){
 
-        //world.removeAllObjects();
+        world.removeAllObjects();
 
         Location myLoc = gpsLocator.getLocation();
 

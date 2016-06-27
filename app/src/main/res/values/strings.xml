@@ -151,7 +151,7 @@
     <string name="title_texture_from_camera">Texture from camera</string>
 
     <!-- ANDROID EYE -->
-    <string name="msg_access_local">Open with browser : </string>
+    <string name="msg_access_local">IPADDRESS : </string>
     <string name="msg_wifi_error">Error: Please enable wifi</string>
     <string name="msg_port_error">Error: 8080 port is in used </string>
     <string name="title_activity_start">StartActivity</string>
@@ -161,5 +161,9 @@
     <string name="wait_message">starting activity.. wait</string>
     <string name="start_message">START!</string>
 
+    <!-- TextureFromCameraActivity TextView starting label -->
+    <string name="loc_label">Localization</string>
+    <string name="ip_label">IP Address</string>
+    <string name="orientation_label">Orientation</string>
 
 </resources>

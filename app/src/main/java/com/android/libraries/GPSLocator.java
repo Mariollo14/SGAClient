@@ -78,13 +78,17 @@ public class GPSLocator implements LocationListener {
 
     @Override
     public void onLocationChanged(Location newLocation) {
-        //String loc = " lat:" + newLocation.getLatitude() + " lon:"+newLocation.getLongitude();
-        //Log.d("LOCATION CHANGED!!", loc );
+        String loc = " lat:" + newLocation.getLatitude() + " lon:"+newLocation.getLongitude();
+        Log.e("LOCATION CHANGED!!", loc );
+
 
         //if(newLocation.getAccuracy()<50){}
         if(newLocation!=null) {
 
             location = newLocation;
+            TextureFromCameraActivity.MainHandler mainH = activity.getMainHandler();
+            if(mainH!=null)
+                mainH.sendLocalization("lat:"+newLocation.getLongitude()+" long:"+newLocation.getLongitude()+ " alt:"+newLocation.getAltitude());
             //Log.e("LOCATION UPDATED", loc );
 
         }
