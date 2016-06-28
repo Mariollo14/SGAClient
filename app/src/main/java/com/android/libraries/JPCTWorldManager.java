@@ -44,7 +44,12 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
     private int CAMERA_HEIGHT = 2;//default value
     //private World sky = null;
     private Light sun = null;
-    private Object3D fakeCubeOnZAxis = Primitives.getCube(1);
+    //ground
+    private Object3D ground;
+    private SimpleVector groundTransformedCenter;
+    private final String groundID = "groundobjID";
+
+
     private HashMap<String, TranslationObject> worldObjects = new HashMap<String, TranslationObject>();
     RGBColor background = new RGBColor(0,0,0,0);//transparent background
     private FrameBuffer frameBuffer = null;
@@ -56,6 +61,8 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
     private GLSurfaceView mGLView;
     private SimParameters simulation;
     private GPSLocator gpsLocator;
+    Location lastLocation;
+    Location myLoc;
 
     /*
     JPCT COORDINATES
@@ -142,8 +149,6 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         //world.getLights().setRGBScale(Lights.RGB_SCALE_2X);
         //sky.getLights().setRGBScale(Lights.RGB_SCALE_2X);
 
-        fakeCubeOnZAxis.translate(0,0,10);
-        world.addObject(fakeCubeOnZAxis);
     }
 
 
@@ -162,7 +167,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
     }
 
 
-    public void createGround(String id){
+    public void createGround(){
 
         String textureID = "groundTexture";
 
@@ -170,7 +175,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         Drawable groundImage = activity.getResources().getDrawable(R.drawable.office);
         Texture groundTexture = new Texture(groundImage);
         txtManager.addTexture(textureID,groundTexture);
-        Object3D ground = Terrain.generateGround(128,128,activity.getResources(),txtManager,textureID);
+        ground = Terrain.generateGround(128,128,activity.getResources(),txtManager,textureID);
         Log.e("createGround", "ground created");
 
 
@@ -179,8 +184,9 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
 
         //cube.translate(x, y, z);
         ground.setTexture(textureID);
-        ground.setName(id);
+        ground.setName(groundID);
         world.addObject(ground);
+        groundTransformedCenter = ground.getTransformedCenter();
 
     }
 
@@ -276,7 +282,8 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
 
         manageObjectsCreation();
         createCubesOnTheJPCTAxis();
-        createGround("groundobjID");
+        createGround();
+        //lastLocation = gpsLocator.requestLocationUpdate();
         //manageMovementUpdate();
         //world.getCamera().lookAt(fakeCubeOnZAxis.getTransformedCenter());
         //polyline disegnata sopra tutto il resto e non coinvolta nelle collisioni
@@ -298,7 +305,9 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
 
         //perform lights and transformations to stored object
         //manageMovementUpdate();
-        this.manageObjectsPositionUpdate();
+        //manageGroundPositionUpdate();
+        //manageObjectsPositionUpdate();
+        handleCameraPosition();
         handleCameraRotations();
 
         world.renderScene(frameBuffer);
@@ -358,7 +367,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
 
         world.removeAllObjects();
 
-        Location myLoc = gpsLocator.getLocation();
+        myLoc = gpsLocator.getLocation();
 
         if(myLoc!=null) {
             for (String targetID : simulation.getTargetLocations().keySet()) {
@@ -393,6 +402,54 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
     }
 
 
+
+    public void handleCameraPosition(){
+
+
+        Location newLoc = gpsLocator.getLocation();
+
+        if(newLoc!=null) {
+            for (String targetID : worldObjects.keySet()) {
+                //Location target = simulation.getTargetLocations().get(targetID);
+                if(myLoc==null){
+                    //Log.e("manageObjPositionUpdate", "id:"+targetID+" target=null,it shouldn't");
+                    continue;
+                }
+                float ray = newLoc.distanceTo(myLoc);
+                float bearingAngleOfView = head + (-1 * pitch);
+                float azimuth = newLoc.bearingTo(myLoc) - bearingAngleOfView;
+                Double azim = toRad((double) azimuth);
+                float altitude = 90 + roll;
+
+                //if (facedown) {
+                if(roll>-90 && roll < 90){//looking down
+                    altitude = altitude * -1;
+                }
+
+                Double alti = toRad((double) altitude);
+
+                //Log.e("isFacedown", facedown + "");
+
+                Double x = ray * Math.sin(azim);
+                Double z = ray * Math.cos(alti) * Math.cos(azim);
+                Double y = -1 * ray * Math.cos(azim) * Math.sin(alti);
+
+                z=z+CAMERA_HEIGHT;
+                Log.e("CAMERA POSITION", "x:"+x+" y:"+y+" z:"+z);
+
+                world.getCamera().setPosition(x.floatValue(),y.floatValue(),z.floatValue());
+
+                //createPrimitiveCube(targetID, x.floatValue(), y.floatValue(), z.floatValue());
+            }
+        }
+        else{
+            Log.e("JPCTWorldManager", "manageObjectsPositionUpdate: null location");
+        }
+
+    }
+
+
+
     // transform gps-points to the correspending screen-points on the android device
     /*
     mAzimuthView heading -> Z JPCT
@@ -400,6 +457,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
     mRollView -> y JPCT
     */
     //distanza sull'asse
+    /*
     public void manageObjectsPositionUpdate(){
 
 
@@ -442,6 +500,49 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
 
     }
 
+    public void manageGroundPositionUpdate(){
+
+
+        Location myLoc = gpsLocator.getLocation();
+
+        if(myLoc!=null) {
+
+                //Location target = simulation.getTargetLocations().get(targetID);
+                if(lastLocation==null){
+                    //Log.e("manageObjPositionUpdate", "id:"+targetID+" target=null,it shouldn't");
+                    return;
+                }
+                float ray = myLoc.distanceTo(lastLocation);
+                float bearingAngleOfView = head + (-1 * pitch);
+                float azimuth = myLoc.bearingTo(lastLocation) - bearingAngleOfView;
+                Double azim = toRad((double) azimuth);
+                float altitude = 90 + roll;
+
+                //if (facedown) {
+                if(roll>-90 && roll < 90){//looking down
+                    altitude = altitude * -1;
+                }
+
+                Double alti = toRad((double) altitude);
+
+                //Log.e("isFacedown", facedown + "");
+
+                Double x = ray * Math.sin(azim);
+                Double z = ray * Math.cos(alti) * Math.cos(azim);
+                Double y = -1 * ray * Math.cos(azim) * Math.sin(alti);
+
+
+                moveObjectToNewPosition(ground, groundTransformedCenter, x.floatValue(), y.floatValue(), z.floatValue());
+                //createPrimitiveCube(targetID, x.floatValue(), y.floatValue(), z.floatValue());
+
+        }
+        else{
+            Log.e("JPCTWorldManager", "manageObjectsPositionUpdate: null location");
+        }
+
+
+    }
+
     private void moveObjectToNewPosition(TranslationObject toBeMoved,float px, float py, float pz){
 
         Log.e("moveObjectToNewPosition","translation");
@@ -456,42 +557,23 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         toBeMoved.z=z;
     }
 
-    /*
-    // transform gps-points to the correspending screen-points on the android device
-    public void manageMovementUpdate(){
+    private void moveObjectToNewPosition(Object3D toBeMoved, SimpleVector oldPos,float px, float py, float pz){
 
-        world.removeAllObjects();
+        Log.e("moveObjectToNewPosition","translation");
+        float x = px-oldPos.x;
+        float y = py-oldPos.y;
+        float z = pz-oldPos.z;
 
-        Location myLoc = gpsLocator.getLocation();
+        toBeMoved.translate(x,y,z);
 
-        if(myLoc!=null) {
-            for (String targetID : simulation.getTargetLocations().keySet()) {
-                Location target = simulation.getTargetLocations().get(targetID);
 
-                float ray = myLoc.distanceTo(target);
-                float bearingAngleOfView = head + (-1 * roll);
-                float azimuth = myLoc.bearingTo(target) - bearingAngleOfView;
-                Double azim = toRad((double) azimuth);
-                float altitude = 90 + pitch;
-
-                if (facedown) {
-                    altitude = altitude * -1;
-                }
-
-                Double alti = toRad((double) altitude);
-
-                //Log.e("isFacedown", facedown + "");
-
-                Double x = ray * Math.sin(azim);
-                Double z = ray * Math.cos(alti) * Math.cos(azim);
-                Double y = -1 * ray * Math.cos(azim) * Math.sin(alti);
-
-                createPrimitiveCube(targetID, x.floatValue(), y.floatValue(), z.floatValue());
-            }
-        }
+        oldPos.x=x;
+        oldPos.y=y;
+        oldPos.z=z;
 
     }
     */
+
 
     /*
     // method used for debug purposes
@@ -503,12 +585,6 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
     }
     */
 
-    public void orientateCameraAlongZ(){
-
-        Camera cam = world.getCamera();
-        cam.lookAt(fakeCubeOnZAxis.getTransformedCenter());
-
-    }
 
 
 
