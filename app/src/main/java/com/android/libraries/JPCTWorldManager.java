@@ -26,6 +26,9 @@ import com.threed.jpct.util.MemoryHelper;
 import com.threed.jpct.util.SkyBox;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 
 import javax.microedition.khronos.egl.EGL10;
 import javax.microedition.khronos.egl.EGLConfig;
@@ -42,6 +45,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
     //private World sky = null;
     private Light sun = null;
     private Object3D fakeCubeOnZAxis = Primitives.getCube(1);
+    private HashMap<String, TranslationObject> worldObjects = new HashMap<String, TranslationObject>();
     RGBColor background = new RGBColor(0,0,0,0);//transparent background
     private FrameBuffer frameBuffer = null;
 
@@ -256,6 +260,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         cube.setTexture(id);
         cube.setName(id);
         world.addObject(cube);
+        worldObjects.put(id, new TranslationObject(id, cube, x,y,z));
 
     }
 
@@ -269,7 +274,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         setUpWorld();
 
 
-        manageObjectsPositionUpdate();
+        manageObjectsCreation();
         createCubesOnTheJPCTAxis();
         createGround("groundobjID");
         //manageMovementUpdate();
@@ -293,18 +298,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
 
         //perform lights and transformations to stored object
         //manageMovementUpdate();
-
-        //orientateCameraAlongZ();
-        /*
-        if(axis>2)axis=0;
-
-        if(axis==0)
-            world.getCamera().lookAt(world.getObjectByName("XAXIS").getTransformedCenter());
-        if(axis==1)
-            world.getCamera().lookAt(world.getObjectByName("YAXIS").getTransformedCenter());
-        if(axis==2)
-            world.getCamera().lookAt(world.getObjectByName("ZAXIS").getTransformedCenter());
-        */
+        this.manageObjectsPositionUpdate();
         handleCameraRotations();
 
         world.renderScene(frameBuffer);
@@ -360,7 +354,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
     mRollView -> y JPCT
     */
     //distanza sull'asse
-    public void manageObjectsPositionUpdate(){
+    public void manageObjectsCreation(){
 
         world.removeAllObjects();
 
@@ -396,6 +390,70 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
             Log.e("JPCTWorldManager", "manageObjectsPositionUpdate: null location");
         }
 
+    }
+
+
+    // transform gps-points to the correspending screen-points on the android device
+    /*
+    mAzimuthView heading -> Z JPCT
+    mPitchView -> x JPCT
+    mRollView -> y JPCT
+    */
+    //distanza sull'asse
+    public void manageObjectsPositionUpdate(){
+
+
+        Location myLoc = gpsLocator.getLocation();
+
+        if(myLoc!=null) {
+            for (String targetID : worldObjects.keySet()) {
+                Location target = simulation.getTargetLocations().get(targetID);
+                if(target==null){
+                    //Log.e("manageObjPositionUpdate", "id:"+targetID+" target=null,it shouldn't");
+                    continue;
+                }
+                float ray = myLoc.distanceTo(target);
+                float bearingAngleOfView = head + (-1 * pitch);
+                float azimuth = myLoc.bearingTo(target) - bearingAngleOfView;
+                Double azim = toRad((double) azimuth);
+                float altitude = 90 + roll;
+
+                //if (facedown) {
+                if(roll>-90 && roll < 90){//looking down
+                    altitude = altitude * -1;
+                }
+
+                Double alti = toRad((double) altitude);
+
+                //Log.e("isFacedown", facedown + "");
+
+                Double x = ray * Math.sin(azim);
+                Double z = ray * Math.cos(alti) * Math.cos(azim);
+                Double y = -1 * ray * Math.cos(azim) * Math.sin(alti);
+
+                TranslationObject obj = worldObjects.get(targetID);
+                moveObjectToNewPosition(obj, x.floatValue(), y.floatValue(), z.floatValue());
+                //createPrimitiveCube(targetID, x.floatValue(), y.floatValue(), z.floatValue());
+            }
+        }
+        else{
+            Log.e("JPCTWorldManager", "manageObjectsPositionUpdate: null location");
+        }
+
+    }
+
+    private void moveObjectToNewPosition(TranslationObject toBeMoved,float px, float py, float pz){
+
+        Log.e("moveObjectToNewPosition","translation");
+        float x = px-toBeMoved.x;
+        float y = py-toBeMoved.y;
+        float z = pz-toBeMoved.z;
+
+        toBeMoved.obj.translate(x,y,z);
+
+        toBeMoved.x=x;
+        toBeMoved.y=y;
+        toBeMoved.z=z;
     }
 
     /*
@@ -512,6 +570,26 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         Log.e("JPCT:getUpVector", "x:"+s.x+" y:"+s.y+" z:"+s.z);
 
         //axis++;
+    }
+
+
+    private class TranslationObject{
+        public String objID;
+        public Object3D obj;
+        public float x, y, z;
+
+        public TranslationObject(String objID, Object3D obj, float x, float y, float z){
+
+            this.objID=objID;
+            this.obj=obj;
+            this.x=x;
+            this.y=y;
+            this.z=z;
+
+        }
+
+
+
     }
 
 }

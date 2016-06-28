@@ -198,7 +198,7 @@ public class TextureFromCameraActivity extends Activity
         simulation = new SimParameters();
         myLocator = new GPSLocator(this, simulation);
         mySensorFusion = new SensorFusion(this);
-        jpctWorldManager = new JPCTWorldManager(this, simulation, myLocator, 2);
+        jpctWorldManager = new JPCTWorldManager(this, simulation, myLocator, 20);
 
         super.onCreate(savedInstanceState);
         getWindow().setFormat(PixelFormat.TRANSLUCENT);
