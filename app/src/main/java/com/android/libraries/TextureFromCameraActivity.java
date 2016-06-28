@@ -12,6 +12,7 @@ import android.graphics.PixelFormat;
 import android.graphics.SurfaceTexture;
 import android.graphics.YuvImage;
 import android.hardware.Camera;
+import android.location.Location;
 import android.net.wifi.WifiManager;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
@@ -28,6 +29,7 @@ import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.view.View;
 import android.view.WindowManager;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
@@ -196,7 +198,7 @@ public class TextureFromCameraActivity extends Activity
         simulation = new SimParameters();
         myLocator = new GPSLocator(this, simulation);
         mySensorFusion = new SensorFusion(this);
-        jpctWorldManager = new JPCTWorldManager(this, simulation, myLocator);
+        jpctWorldManager = new JPCTWorldManager(this, simulation, myLocator, 2);
 
         super.onCreate(savedInstanceState);
         getWindow().setFormat(PixelFormat.TRANSLUCENT);
@@ -260,6 +262,14 @@ public class TextureFromCameraActivity extends Activity
         LOCview = (TextView)this.findViewById(R.id.localizationTV);
         LOCview.setBackgroundColor(PixelFormat.OPAQUE);
         LOCview.setText("LOCALIZATION");
+        LOCview.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Location l = myLocator.requestLocationUpdate();
+                myLocator.onLocationChanged(l);
+
+            }
+        });
 
 
 

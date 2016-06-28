@@ -1,12 +1,14 @@
 package com.android.libraries;
 
 import android.app.Activity;
+import android.graphics.drawable.Drawable;
 import android.hardware.Sensor;
 import android.hardware.SensorManager;
 import android.location.Location;
 import android.opengl.GLSurfaceView;
 import android.util.Log;
 
+import com.android.libraries.jpctutils.Terrain;
 import com.threed.jpct.Camera;
 import com.threed.jpct.Config;
 import com.threed.jpct.*;
@@ -23,6 +25,8 @@ import com.threed.jpct.util.BitmapHelper;
 import com.threed.jpct.util.MemoryHelper;
 import com.threed.jpct.util.SkyBox;
 
+import java.io.File;
+
 import javax.microedition.khronos.egl.EGL10;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.egl.EGLDisplay;
@@ -34,6 +38,7 @@ import javax.microedition.khronos.opengles.GL10;
 public class JPCTWorldManager implements GLSurfaceView.Renderer{
 
     private World world = null;
+    private int CAMERA_HEIGHT = 2;//default value
     //private World sky = null;
     private Light sun = null;
     private Object3D fakeCubeOnZAxis = Primitives.getCube(1);
@@ -70,10 +75,13 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
 
     }
 
-    public JPCTWorldManager(TextureFromCameraActivity activity, SimParameters simulation, GPSLocator gpsLocator) {
+    public JPCTWorldManager(TextureFromCameraActivity activity, SimParameters simulation, GPSLocator gpsLocator, Integer CAMERA_HEIGHT) {
         this.activity = activity;
         this.simulation=simulation;
         this.gpsLocator=gpsLocator;
+
+        if(CAMERA_HEIGHT!=null)
+            this.CAMERA_HEIGHT=CAMERA_HEIGHT;
     }
 
 
@@ -117,7 +125,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         sun = new Light(world);
         sun.setIntensity(128, 128, 128);
         //sun.setIntensity(255, 255, 255);
-        world.getCamera().setPosition(0,0,0);
+        world.getCamera().setPosition(0,0,CAMERA_HEIGHT);
 
         /*
             Two worlds because one is for the scene itself and one is for the sky dome.
@@ -149,6 +157,28 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
 
     }
 
+
+    public void createGround(String id){
+
+        String textureID = "groundTexture";
+
+        TextureManager txtManager = TextureManager.getInstance();
+        Drawable groundImage = activity.getResources().getDrawable(R.drawable.office);
+        Texture groundTexture = new Texture(groundImage);
+        txtManager.addTexture(textureID,groundTexture);
+        Object3D ground = Terrain.generateGround(128,128,activity.getResources(),txtManager,textureID);
+        Log.e("createGround", "ground created");
+
+
+        int dim = 1;//(int) (500 / z);
+
+
+        //cube.translate(x, y, z);
+        ground.setTexture(textureID);
+        ground.setName(id);
+        world.addObject(ground);
+
+    }
 
     public void createPrimitiveCube(String id, float x, float y, float z){
         Log.e("object:"+id, "CREATED at:"+x+" y:"+y+" z:"+z);
@@ -235,11 +265,13 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
     @Override
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
 
+
         setUpWorld();
 
 
         manageObjectsPositionUpdate();
         createCubesOnTheJPCTAxis();
+        createGround("groundobjID");
         //manageMovementUpdate();
         //world.getCamera().lookAt(fakeCubeOnZAxis.getTransformedCenter());
         //polyline disegnata sopra tutto il resto e non coinvolta nelle collisioni

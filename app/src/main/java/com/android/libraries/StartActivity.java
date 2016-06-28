@@ -111,7 +111,7 @@ public class StartActivity extends AppCompatActivity {
             switch (msg.what) {
 
                 case MSG_START: {
-                    Log.e(TAG, "cam:"+activity.hasCameraPermission+" loc:"+activity.hasLocalizationPermission+" int:"+activity.hasInternetPermission);
+                    //Log.e(TAG, "cam:"+activity.hasCameraPermission+" loc:"+activity.hasLocalizationPermission+" int:"+activity.hasInternetPermission);
                     if(activity.hasCameraPermission && activity.hasLocalizationPermission && activity.hasInternetPermission) {
                         Log.e(TAG, "msg.arg1:"+(String)msg.obj);
                         activity.startTV.setText((String) msg.obj);
