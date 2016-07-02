@@ -43,8 +43,6 @@
     </SurfaceView>
 
 
-
-
     <android.opengl.GLSurfaceView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -85,6 +83,15 @@
         android:layout_alignParentTop="true"
         android:layout_alignParentEnd="true"
         />
+
+    <TextView
+        android:id="@+id/virtualCoorsTV"
+        android:text="@string/virtualcoors_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentRight="true" />
+
 
     <!--
     <SurfaceView

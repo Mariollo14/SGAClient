@@ -126,7 +126,7 @@ public class TextureFromCameraActivity extends Activity
     private static SurfaceHolder sSurfaceHolder;
 
     private SurfaceView cameraView = null;
-    private TextView tmptv = null, LOCview = null, IPview = null;
+    private TextView tmptv = null, LOCview = null, IPview = null, virtualCoorsView = null;
     private GLSurfaceView mGLView;
     private boolean gl2 = true;
     private JPCTWorldManager jpctWorldManager = null;
@@ -198,7 +198,7 @@ public class TextureFromCameraActivity extends Activity
         simulation = new SimParameters();
         myLocator = new GPSLocator(this, simulation);
         mySensorFusion = new SensorFusion(this);
-        jpctWorldManager = new JPCTWorldManager(this, simulation, myLocator, 200);
+        jpctWorldManager = new JPCTWorldManager(this, simulation, myLocator, 0);
 
         super.onCreate(savedInstanceState);
         getWindow().setFormat(PixelFormat.TRANSLUCENT);
@@ -208,6 +208,7 @@ public class TextureFromCameraActivity extends Activity
         //setContentView(R.layout.activity_texture_from_camera);
 
         mHandler = new MainHandler(this);
+
 
         setContentView(R.layout.activity_texture_from_camera);
 
@@ -261,7 +262,7 @@ public class TextureFromCameraActivity extends Activity
 
         LOCview = (TextView)this.findViewById(R.id.localizationTV);
         LOCview.setBackgroundColor(PixelFormat.OPAQUE);
-        LOCview.setText("LOCALIZATION");
+        //LOCview.setText("LOCALIZATION");
         LOCview.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -270,12 +271,20 @@ public class TextureFromCameraActivity extends Activity
 
             }
         });
+        Location l = myLocator.requestLocationUpdate();
+        myLocator.onLocationChanged(l);
 
 
 
         IPview = (TextView)this.findViewById(R.id.ipaddressTV);
         IPview.setBackgroundColor(PixelFormat.OPAQUE);
-        IPview.setText("IPADDRESS");
+        //IPview.setText("IPADDRESS");
+
+
+        virtualCoorsView = (TextView)this.findViewById(R.id.virtualCoorsTV);
+        virtualCoorsView.setBackgroundColor(PixelFormat.OPAQUE);
+        //virtualCoorsView.setText("Coordinates");
+
 
 
 
@@ -655,6 +664,8 @@ public class TextureFromCameraActivity extends Activity
         private static final int MSG_SEND_ROTATE_DEG = 4;
         private static final int MSG_SET_TEMP_TV = 5;
         private static final int MSG_SET_LOCALIZATION = 6;
+        private static final int MSG_SET_VIRTUALCOORS = 7;
+
 
 
         private WeakReference<TextureFromCameraActivity> mWeakActivity;
@@ -711,6 +722,11 @@ public class TextureFromCameraActivity extends Activity
             sendMessage(obtainMessage(MSG_SET_LOCALIZATION, loc));
         }
 
+
+        public void sendVirtualCoordinates(String coors) {
+            sendMessage(obtainMessage(MSG_SET_VIRTUALCOORS, coors));
+        }
+
         @Override
         public void handleMessage(Message msg) {
             TextureFromCameraActivity activity = mWeakActivity.get();
@@ -761,6 +777,11 @@ public class TextureFromCameraActivity extends Activity
                 case MSG_SET_LOCALIZATION: {
                     String loc = (String) msg.obj;
                     activity.LOCview.setText(loc);
+                    break;
+                }
+                case MSG_SET_VIRTUALCOORS: {
+                    String coors = (String) msg.obj;
+                    activity.virtualCoorsView.setText(coors);
                     break;
                 }
                 default:

@@ -165,5 +165,6 @@
     <string name="loc_label">Localization</string>
     <string name="ip_label">IP Address</string>
     <string name="orientation_label">Orientation</string>
+    <string name="virtualcoors_label">Coordinates</string>
 
 </resources>
