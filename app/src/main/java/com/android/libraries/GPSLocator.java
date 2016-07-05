@@ -41,11 +41,12 @@ public class GPSLocator implements LocationListener {
     // The minimum distance to change Updates in meters
     private static final long MIN_DISTANCE_CHANGE_FOR_UPDATES = 1; // 2 meters
     // The minimum time between updates in milliseconds
-    private static final long MIN_TIME_BW_UPDATES = 200; //200ms
+    private static final long MIN_TIME_BW_UPDATES = 1000; //1sec
 
     private static final int ATTEMPT_TO_GET_BEST_INITIAL_ACCURACY = 10;
 
-    private static final int ACCURACY_THRESHOLD = 10;
+    private static int ACCURACY_THRESHOLD = 300;
+    private static final int MIN_ACCURACY = 30;
 
 
 
@@ -72,6 +73,8 @@ public class GPSLocator implements LocationListener {
             }
             if(location==null)location=temp;
         }
+        if(temp==null)Log.e(TAG,"temp=NULL");
+        if(location==null)Log.e(TAG,"location=NULL");
         //location = requestLocationUpdate();
 
 
@@ -102,13 +105,14 @@ public class GPSLocator implements LocationListener {
 
         //if(newLocation.getAccuracy()<50){}
         if(newLocation!=null) {
-            if(newLocation.getAccuracy()<=ACCURACY_THRESHOLD) {
-                String loc = "lat:" + newLocation.getLongitude() + " long:" + newLocation.getLongitude() + " alt:" + newLocation.getAltitude();
+            if(newLocation.getAccuracy()<=Math.max(ACCURACY_THRESHOLD,MIN_ACCURACY)) {
+                String loc = "lat:" + newLocation.getLatitude() + " long:" + newLocation.getLongitude() + " alt:" + newLocation.getAltitude();
                 location = newLocation;
+                ACCURACY_THRESHOLD=(int)newLocation.getAccuracy();
                 TextureFromCameraActivity.MainHandler mainH = activity.getMainHandler();
                 if (mainH != null)
                     mainH.sendLocalization(loc);
-                //Log.e("LOCATION UPDATED", loc );
+                Log.e("LOCATION UPDATED", loc );
             }
         }
     }

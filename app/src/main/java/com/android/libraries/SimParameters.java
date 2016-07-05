@@ -17,8 +17,8 @@ public class SimParameters {
     public SimParameters(){
 
         //test
-        this.addNewTarget("asobrero",45.0808178,7.6655203,0);
-        this.addNewTarget("csoregina",45.082234,7.666427,0);
+        this.addNewTarget("asobrero",45.0808178,7.6655203, 245);
+        this.addNewTarget("csoregina",45.082234,7.666427, 240);
         /*
         this.addNewTarget("pirandello",41.128718,14.794887,174);
         this.addNewTarget("rosina",41.1254395,14.7934637,177);
@@ -29,8 +29,11 @@ public class SimParameters {
         this.addNewTarget("nikila",41.131527,14.780288,141);
         this.addNewTarget("pirandello10",41.1292366,14.7941399, 173);
         */
-        this.addNewTarget("tobkcf",45.064171, 7.659963,0);
-        this.addNewTarget("tobkpraca",45.075859, 7.664095, 0);
+        int altezzaGrattacielo = 247+166;
+        this.addNewTarget("sanpaolo", 45.069642,7.662763,altezzaGrattacielo);
+        this.addNewTarget("tobkcf",45.064171, 7.659963,250);
+        this.addNewTarget("tobkpraca",45.075859, 7.664095, 251);
+        //this.addNewTarget("trueN", 89.99, 0.01, 250);
         /*
         Location asobrero = new Location("asobrero");
         asobrero.setLatitude(45.0808178);

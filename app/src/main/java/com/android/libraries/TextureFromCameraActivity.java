@@ -115,9 +115,9 @@ public class TextureFromCameraActivity extends Activity
     private static final int DEFAULT_ROTATE_PERCENT = 0;    // 0-100
 
     // Requested values; actual may differ.
-    private static final int REQ_CAMERA_WIDTH = 1280;
-    private static final int REQ_CAMERA_HEIGHT = 720;
-    private static final int REQ_CAMERA_FPS = 30;
+    private static final int REQ_CAMERA_WIDTH = 640;//1280;
+    private static final int REQ_CAMERA_HEIGHT = 480;//720;
+    private static final int REQ_CAMERA_FPS = 30;//20;
 
 
     // The holder for our SurfaceView.  The Surface can outlive the Activity (e.g. when
@@ -1613,7 +1613,12 @@ public class TextureFromCameraActivity extends Activity
     private int lastBlockSentTimeInMillis = (int) (System.currentTimeMillis() % 65535);
 
     private void doStreaming3() {
-
+        //synchronized (TextureFromCameraActivity.this) {
+        long newtmill = System.currentTimeMillis();
+        long mill = newtmill - tmill;
+        tmill = newtmill;
+        Log.e("Thread run interval:", ""+mill+" queue size:"+frameToBeEncodedQueue.size());
+        //}
 
         //Log.e(TAG,"doStreaming");
             /*
@@ -1644,6 +1649,12 @@ public class TextureFromCameraActivity extends Activity
 
 
                 streamingServer.sendMedia(targetBlock.data(), targetBlock.length());
+                /*
+                    long newtmill= System.currentTimeMillis();
+                    long mill = newtmill - tmill;
+                    tmill=newtmill;
+                    Log.e("Thread run interval:", ""+mill);
+                    */
                 //targetBlock.reset();
                 lastBlockSentTimeInMillis=targetBlock.millis;
 
@@ -1823,9 +1834,9 @@ public class TextureFromCameraActivity extends Activity
                 //videoEncoderHandler.sendMessage(m);
                 //executor.execute(videoTask);
 
-                //if(frameToBeEncodedQueue.size()>100){
+                if(frameToBeEncodedQueue.size()>10){
                     frameToBeEncodedQueue.poll();
-                //}
+                }
                 frameToBeEncodedQueue.add(frame);
                 executor.execute(videoEncoderThread);
 
@@ -1882,8 +1893,8 @@ public class TextureFromCameraActivity extends Activity
         public void run() {
             //Log.e(TAG,"VIDEOENCODINGTASK");
 
-
             Log.e("VIDEOENCODINGTASK", "queue size:"+frameToBeEncodedQueue.size());
+
             byte [] toBeEncoded = frameToBeEncodedQueue.poll();
 
             if(toBeEncoded==null)return;
@@ -1903,12 +1914,7 @@ public class TextureFromCameraActivity extends Activity
             ret = nativeDoVideoEncode(toBeEncoded, resultNal, intraFlag);
 
             currentBlock.millis=millis;
-            //synchronized (TextureFromCameraActivity.this) {
-                long newtmill = System.currentTimeMillis();
-                long mill = newtmill - tmill;
-                tmill = newtmill;
-                Log.e("Thread run interval:", ""+mill+" queue size:"+frameToBeEncodedQueue.size());
-            //}
+
 
                 if (ret <= 0) {
                     return;
@@ -1941,11 +1947,12 @@ public class TextureFromCameraActivity extends Activity
 
                 if(streamingServer!=null && streamingServer.inStreaming==true && streamingHandler!=null) {
 
-
-
-
+                    //streamingServer.sendMedia(currentBlock.data(),currentBlock.length());
                     frameToBeSent.offer(currentBlock);
-                    Log.e("Thread run", "frame TO BE SENT:"+frameToBeSent.size()+ " current:"+currentBlock.length());
+
+                    //Log.e("Thread run", "frame TO BE SENT:"+frameToBeSent.size()+ " current:"+currentBlock.length());
+
+
 
                     Message streamMex = new Message();
 

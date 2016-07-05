@@ -148,7 +148,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
 
         //world.getLights().setRGBScale(Lights.RGB_SCALE_2X);
         //sky.getLights().setRGBScale(Lights.RGB_SCALE_2X);
-        setUpSkyBox();
+        //setUpSkyBox();
 
     }
 
@@ -296,6 +296,32 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
             if(id.equals("rosina")){
                 txt = new Texture(64,64,RGBColor.RED);
             }
+            else if(id.equals("trueN")){
+                txt = new Texture(64,64,RGBColor.WHITE);
+                txtManager.addTexture(id, txt);
+                int dim = 1000000;//(int) (500 / z);
+
+                Object3D cube = Primitives.getCube(dim);
+
+                cube.translate(x, y, z);
+                cube.setTexture(id);
+                cube.setName(id);
+                world.addObject(cube);
+                return;
+            }
+            else if(id.equals("sanpaolo")){
+                txt = new Texture(64,64,RGBColor.RED);
+                txtManager.addTexture(id, txt);
+                int dim = 10;//(int) (500 / z);
+
+                Object3D cube = Primitives.getCube(dim);
+
+                cube.translate(x, y, z);
+                cube.setTexture(id);
+                cube.setName(id);
+                world.addObject(cube);
+                return;
+            }
             else if(id.equals("asobrero")){
                 txt = new Texture(64,64,new RGBColor(255, 255, 0));
 
@@ -355,7 +381,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         else
             txt = txtManager.getTexture(id);
 
-        int dim = 1;//(int) (500 / z);
+        int dim = 10;//(int) (500 / z);
 
         Object3D cube = Primitives.getCube(dim);
 
@@ -378,8 +404,8 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         setUpWorld();
 
 
-        manageObjectsCreation();
-        createCubesOnTheJPCTAxis();
+        manageObjectsCreation2();
+        //createCubesOnTheJPCTAxis();
         //createGroundPlane();
         /*
         Runnable r = new Runnable() {
@@ -426,7 +452,8 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         handleCameraRotations();
         world.renderScene(frameBuffer);
          //the scene is drawn on the frame buffer.
-        skybox.render(world,frameBuffer);
+        if(skybox!=null)
+            skybox.render(world,frameBuffer);
 
         world.draw(frameBuffer);//also world.drawWireframe can be used to just draw the borders
 
@@ -472,6 +499,69 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         return value * Math.PI / 180;
     }
 
+
+    public void manageObjectsCreation2(){
+
+        world.removeAllObjects();
+
+        int attempt = 10;
+        while(zeroLoc==null && attempt>0) {
+            zeroLoc = gpsLocator.getLocation();
+            attempt--;
+        }
+
+
+        if(zeroLoc!=null) {
+            //Log.e("CAMERA POS", "x:"+xCAMERA+" y:"+yCAMERA+" z:"+zCAMERA);
+            Log.e("ZEROLOC","altitude:"+zeroLoc.getAltitude());
+            for (String targetID : simulation.getTargetLocations().keySet()) {
+                Location target = simulation.getTargetLocations().get(targetID);
+
+                //
+                //p stands for ro
+                float p = zeroLoc.distanceTo(target);
+
+                //float bearingAngleOfView = head + (-1 * pitch);
+                //float azimuth = newLoc.bearingTo(zeroLoc) - bearingAngleOfView;
+                //Log.e("bearingAngleOfView",bearingAngleOfView+"");
+
+                float theta = zeroLoc.bearingTo(target);// - bearingAngleOfView;
+                //Log.e("theta", theta+"");
+                Double thetaD = toRad((double) theta);
+
+                Double z = target.getAltitude() - zeroLoc.getAltitude();
+                // z == p * Math.cos(phiD);
+                // cosPhi = z/p
+                //Log.e("handleCamPosSpherical", "z/p="+z.floatValue()+"/"+p);
+                Double cosPhi;
+                if(p>1)
+                    cosPhi = z/p;
+                else {
+                    createPrimitiveCube(targetID, 0, 0, 0);
+                    continue;
+                }
+                //Log.e("handleCamPosSpherical", "cosPhi="+cosPhi);
+                //Double phiD = toRad((double) phi);
+                Double phiD = Math.acos(cosPhi);
+
+                //double r = p * Math.sin(phiD);
+                //Log.e("isFacedown", facedown + "");
+
+                //the code would be this...
+                Double x = p * Math.sin(phiD) * Math.cos(thetaD);
+                Double y = p * Math.sin(phiD) * Math.sin(thetaD);
+
+                //Log.e("CAMERA POSITION", "x:"+x+" y:"+y+" z:"+z);
+
+                createPrimitiveCube(targetID, x.floatValue(), y.floatValue(), z.floatValue());
+            }
+        }
+        else{
+            Log.e("JPCTWorldManager", "manageObjectsPositionUpdate: null location");
+        }
+
+    }
+
     // transform gps-points to the correspending screen-points on the android device
     /*
     mAzimuthView heading -> Z JPCT
@@ -479,6 +569,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
     mRollView -> y JPCT
     */
     //distanza sull'asse
+    //http://tutorial.math.lamar.edu/Classes/CalcIII/SphericalCoords.aspx
     public void manageObjectsCreation(){
 
         world.removeAllObjects();
@@ -577,7 +668,10 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         //if(true)return;
 
         //Log.e("handleCamPosSpherical", "1");
-        Location newLoc = new Location(gpsLocator.getLocation());
+        Location currLoc = gpsLocator.getLocation();
+        if(currLoc==null)return;
+
+        Location newLoc = new Location(currLoc);
 
         if(newLoc!=null) {
                 //Log.e("handleCamPosSpherical", "2");
@@ -597,13 +691,6 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
                 float theta = zeroLoc.bearingTo(newLoc);// - bearingAngleOfView;
                 //Log.e("theta", theta+"");
                 Double thetaD = toRad((double) theta);
-                //float altitude = 90 + roll;
-                float phi = 90 + roll;
-
-                //if (facedown) {
-                if(roll>-90 && roll < 90){//looking down
-                    phi = phi * -1;
-                }
 
 
                 Double z = newLoc.getAltitude() - zeroLoc.getAltitude();
@@ -647,8 +734,11 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
                         String vcoors = "x:"+xCAMERA+"\n"+
                                         "y:"+yCAMERA+"\n"+
                                         "z:"+zCAMERA+"\n"+
-                                        "zerolocisNULL="+zerolocisnull+"\n"+
-                                        "accuracyRay="+newLoc.getAccuracy();
+                                        "accuracyRay="+newLoc.getAccuracy()+"\n"+
+                                        "zerolocisNULL="+zerolocisnull+"\n";
+
+                        if(!zerolocisnull)vcoors=vcoors+"zeroloc altitude="+zeroLoc.getAltitude()+"\n";
+
                         mainH.sendVirtualCoordinates(vcoors);
                     }
 
