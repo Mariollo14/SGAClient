@@ -489,6 +489,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
             attempt--;
         }
 
+
         if(zeroLoc!=null) {
             for (String targetID : simulation.getTargetLocations().keySet()) {
                 Location target = simulation.getTargetLocations().get(targetID);
@@ -576,18 +577,19 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         //if(true)return;
 
         //Log.e("handleCamPosSpherical", "1");
-        Location newLoc = gpsLocator.getLocation();
+        Location newLoc = new Location(gpsLocator.getLocation());
 
         if(newLoc!=null) {
                 //Log.e("handleCamPosSpherical", "2");
                 //Location target = simulation.getTargetLocations().get(targetID);
                 if(zeroLoc==null){
                     //Log.e("handleCamPosSpherical", "zeroLOC==null");
-                    zeroLoc=gpsLocator.requestLocationUpdate();
+                    //zeroLoc=gpsLocator.requestLocationUpdate();
                     return;
                 }
                 //p stands for ro
                 float p = zeroLoc.distanceTo(newLoc);
+                if(p<1)return;
                 //float bearingAngleOfView = head + (-1 * pitch);
                 //float azimuth = newLoc.bearingTo(zeroLoc) - bearingAngleOfView;
                 //Log.e("bearingAngleOfView",bearingAngleOfView+"");
@@ -598,7 +600,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
                 //float altitude = 90 + roll;
                 float phi = 90 + roll;
 
-            //if (facedown) {
+                //if (facedown) {
                 if(roll>-90 && roll < 90){//looking down
                     phi = phi * -1;
                 }
@@ -625,15 +627,11 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
                 Double x = p * Math.sin(phiD) * Math.cos(thetaD);
                 Double y = p * Math.sin(phiD) * Math.sin(thetaD);
 
-
-
-
-
                 z=z+CAMERA_HEIGHT;
                 //Log.e("CAMERA POSITION", "x:"+x+" y:"+y+" z:"+z);
 
 
-                if(x.floatValue()!=xCAMERA || y.floatValue()!=yCAMERA || z.floatValue()!=zCAMERA) {
+                if(x.floatValue()-xCAMERA>=1 || y.floatValue()-yCAMERA>=1 || z.floatValue()-zCAMERA>=1) {
 
                     xCAMERA = x.floatValue();
                     yCAMERA = y.floatValue();
@@ -649,7 +647,8 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
                         String vcoors = "x:"+xCAMERA+"\n"+
                                         "y:"+yCAMERA+"\n"+
                                         "z:"+zCAMERA+"\n"+
-                                        "zerolocisNULL="+zerolocisnull;
+                                        "zerolocisNULL="+zerolocisnull+"\n"+
+                                        "accuracyRay="+newLoc.getAccuracy();
                         mainH.sendVirtualCoordinates(vcoors);
                     }
 

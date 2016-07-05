@@ -52,7 +52,9 @@ import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.List;
+import java.util.Objects;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.locks.ReentrantLock;
@@ -167,14 +169,14 @@ public class TextureFromCameraActivity extends Activity
     private final int StreamingPort = 8088;
     private final int PictureWidth = 480;
     private final int PictureHeight = 360;
-    private static final int MediaBlockNumber = 3;
-    private static final int MediaBlockSize = 1024 * 512;//131072;
+    private static final int MediaBlockNumber = 6;
+    private static final int MediaBlockSize = 131072;//1024 * 512;//
     private final int EstimatedFrameNumber = 1;//30;
     private final int StreamingInterval = 10;//100;
     // EYE
     private StreamingServer streamingServer = null;
-    ExecutorService executor = Executors.newFixedThreadPool(3);
-    VideoEncodingTask videoTask = new VideoEncodingTask();
+    //ExecutorService executor = Executors.newFixedThreadPool(3);
+    //VideoEncodingTask videoTask = new VideoEncodingTask();
     private ReentrantLock previewLock = new ReentrantLock();
     boolean inProcessing = false;
     byte[] yuvFrame = new byte[1920 * 1280 * 2];
@@ -322,7 +324,7 @@ public class TextureFromCameraActivity extends Activity
         try {
             streamingServer = new StreamingServer(StreamingPort);
             streamingServer.start();
-            Log.e("Server Started:", streamingServer.getAddress().getHostString());
+            //Log.e("Server Started:", streamingServer.getAddress().getHostString());
 
 
         } catch (UnknownHostException e) {
@@ -333,6 +335,9 @@ public class TextureFromCameraActivity extends Activity
 
         streamingThread = new StreamingThread();
         streamingThread.start();
+
+        videoEncoderThread = new VideoEncoderThread();
+        //videoEncoderThread.start();
 
         /*
         streamingHandler = new Handler();
@@ -348,7 +353,6 @@ public class TextureFromCameraActivity extends Activity
 
 
     }
-
 
 
 
@@ -1582,10 +1586,16 @@ public class TextureFromCameraActivity extends Activity
                 @Override
                 public boolean handleMessage(Message msg) {
 
-                    final int readIndex = msg.arg1;
 
-                    doStreaming2(readIndex);
 
+
+                    if(msg.what==NEW_ENCODED_FRAME_AVAILABLE){
+                        doStreaming3();
+                    }
+                    else {
+                        final int readIndex = msg.arg1;
+                        doStreaming2(readIndex);
+                    }
                     return true;
                 }
             });
@@ -1597,6 +1607,49 @@ public class TextureFromCameraActivity extends Activity
 
     }
 
+
+    private int lastBlockSentTimeInMillis = (int) (System.currentTimeMillis() % 65535);
+
+    private void doStreaming3() {
+
+
+        //Log.e(TAG,"doStreaming");
+            /*
+            long newtmill= System.currentTimeMillis();
+            long mill = newtmill - tmill;
+            tmill=newtmill;
+            Log.e("Thread run interval:", ""+mill);
+            */
+
+        MediaBlock targetBlock = frameToBeSent.poll();
+        if (targetBlock == null) {
+            //Log.e(TAG, "M48, null mediablock, thread yield");
+            return;
+        } else if (targetBlock != null)
+            //if(targetBlock.millis<lastBlockSentTimeInMillis)return;
+
+            if (targetBlock.flag == 1) {
+                //Log.e(TAG, "doStreaming: flag=1");
+
+                // HERE IS THE PROBLEM
+                    /*
+                    long newtmill= System.currentTimeMillis();
+                    long mill = newtmill - tmill;
+                    tmill=newtmill;
+                    Log.e("Thread run interval:", ""+mill);
+                    */
+
+
+
+                streamingServer.sendMedia(targetBlock.data(), targetBlock.length());
+                //targetBlock.reset();
+                lastBlockSentTimeInMillis=targetBlock.millis;
+
+            }
+
+
+
+    }
 
     private void doStreaming2(int readIndex) {
 
@@ -1726,32 +1779,188 @@ public class TextureFromCameraActivity extends Activity
 
 
             c.addCallbackBuffer(frame);
+
             previewLock.unlock();
         }
     };
 
 
+
+    private int filter = 0;
+
     private void doVideoEncode(byte[] frame) {
+        //if(frameToBeEncodedQueue.size()>QUEUE_SIZE)return;
+
+
+        /*
         if (inProcessing == true) {
             return;
         }
         inProcessing = true;
+        */
 
-        int picWidth = mCameraPreviewWidth;//cameraView.Width();
-        int picHeight = mCameraPreviewHeight;//cameraView.Height();
+        //int picWidth = mCameraPreviewWidth;//cameraView.Width();
+        //int picHeight = mCameraPreviewHeight;//cameraView.Height();
         //Log.e("doVideoEncode","picWidth:"+picWidth+" picHeight:"+picHeight);
 
-        int size = /*frame.length;*/picWidth*picHeight + picWidth*picHeight/2;
+        //int size = /*frame.length;*/picWidth*picHeight + picWidth*picHeight/2;
 
         //Log.e(TAG, "fr.len="+frame.length + "  !=   size="+size);
 
+        if(/*videoEncoderHandler!=null&&*/streamingServer!=null && streamingServer.inStreaming==true) {
+            //filter++;
+            //if(filter<3)return;
 
-        System.arraycopy(frame, 0, yuvFrame, 0, size);
+            //filter = 0;
 
 
-        executor.execute(videoTask);
+            //byte[] yvFrame = new byte[1920 * 1280 * 2];
+            //System.arraycopy(frame, 0, yvFrame, 0, size);
+                //Message m = new Message();
+                //frameToBeEncodedQueue.add(yvFrame);
+                //videoEncoderHandler.sendMessage(m);
+                //executor.execute(videoTask);
+
+                //if(frameToBeEncodedQueue.size()>100){
+                    frameToBeEncodedQueue.poll();
+                //}
+                frameToBeEncodedQueue.add(frame);
+                executor.execute(videoEncoderThread);
+
+        }
     }
 
+
+    ExecutorService executor = Executors.newFixedThreadPool(1);
+    ConcurrentLinkedQueue<byte[]> frameToBeEncodedQueue = new ConcurrentLinkedQueue();
+    ConcurrentLinkedQueue<MediaBlock> frameToBeSent = new ConcurrentLinkedQueue();
+    private VideoEncoderThread videoEncoderThread = new VideoEncoderThread();
+    private Handler videoEncoderHandler=null;
+
+    private int NEW_ENCODED_FRAME_AVAILABLE = 2;
+    private int QUEUE_SIZE = 10;
+
+
+    private class VideoEncoderThread implements Runnable {
+
+        private byte[] resultNal = new byte[2*1024 * 1024];
+        private byte[] videoHeader = new byte[8];
+
+
+        public VideoEncoderThread() {
+            videoHeader[0] = (byte) 0x19;
+            videoHeader[1] = (byte) 0x79;
+        }
+
+        /*
+        public void run(){
+
+
+            // We need to create the Handler before reporting ready.
+            Looper.prepare();
+
+            // We need to create the Handler before reporting ready.
+            videoEncoderHandler = new Handler(new Handler.Callback() {
+                @Override
+                public boolean handleMessage(Message msg) {
+
+
+                    encode();
+
+                    return true;
+                }
+            });
+
+
+            Looper.loop();
+
+        }
+        */
+
+        public void run() {
+            //Log.e(TAG,"VIDEOENCODINGTASK");
+
+
+            Log.e("VIDEOENCODINGTASK", "queue size:"+frameToBeEncodedQueue.size());
+            byte [] toBeEncoded = frameToBeEncodedQueue.poll();
+
+            if(toBeEncoded==null)return;
+
+            //MediaBlock currentBlock = mediaBlocks[mediaWriteIndex];
+            MediaBlock currentBlock = new MediaBlock(MediaBlockSize);
+
+
+            int intraFlag = 0;
+            if (currentBlock.videoCount == 0) {
+                intraFlag = 1;
+            }
+            int millis = (int) (System.currentTimeMillis() % 65535);
+
+            int ret = -1;
+
+            ret = nativeDoVideoEncode(toBeEncoded, resultNal, intraFlag);
+
+            currentBlock.millis=millis;
+            //synchronized (TextureFromCameraActivity.this) {
+                long newtmill = System.currentTimeMillis();
+                long mill = newtmill - tmill;
+                tmill = newtmill;
+                Log.e("Thread run interval:", ""+mill+" queue size:"+frameToBeEncodedQueue.size());
+            //}
+
+                if (ret <= 0) {
+                    return;
+                }
+
+
+
+            // timestamp
+            videoHeader[2] = (byte) (millis & 0xFF);
+            videoHeader[3] = (byte) ((millis >> 8) & 0xFF);
+            // length
+            videoHeader[4] = (byte) (ret & 0xFF);
+            videoHeader[5] = (byte) ((ret >> 8) & 0xFF);
+            videoHeader[6] = (byte) ((ret >> 16) & 0xFF);
+            videoHeader[7] = (byte) ((ret >> 24) & 0xFF);
+
+
+            //veloce
+
+            if (currentBlock.length() + ret + 8 <= MediaBlockSize) {
+                currentBlock.write(videoHeader, 8);
+                currentBlock.writeVideo(resultNal, ret);
+
+                currentBlock.flag = 1;
+                //Log.e(TAG,"NEW BLOCK ENCODED");
+
+
+                //lento
+
+
+                if(streamingServer!=null && streamingServer.inStreaming==true && streamingHandler!=null) {
+
+
+
+
+                    frameToBeSent.offer(currentBlock);
+                    Log.e("Thread run", "frame TO BE SENT:"+frameToBeSent.size()+ " current:"+currentBlock.length());
+
+                    Message streamMex = new Message();
+
+                    streamMex.what=NEW_ENCODED_FRAME_AVAILABLE;
+                            //Log.e(TAG, "encoded ready to stream block:"+ mediaWriteIndex);
+
+                            //LENTO
+
+                    streamingHandler.sendMessage(streamMex);
+                    Log.e("VIDEOENCODER","end");
+
+                }
+            }
+
+            //inProcessing = false;
+        }
+    }
 
 
 
@@ -1820,6 +2029,9 @@ public class TextureFromCameraActivity extends Activity
                     if (changeBlock == false) {
                         if (currentBlock.videoCount >= EstimatedFrameNumber) {
                             changeBlock = true;
+
+
+
                         }
                     }
 
@@ -1827,18 +2039,26 @@ public class TextureFromCameraActivity extends Activity
                         currentBlock.flag = 1;
                         //Log.e(TAG,"NEW BLOCK ENCODED");
 
+                        /*
+                        long newtmill= System.currentTimeMillis();
+                        long mill = newtmill - tmill;
+                        tmill=newtmill;
+                        Log.e("Thread run interval:", ""+mill);
+                        */
+
                         //lento
 
 
                         if(streamingServer!=null && streamingServer.inStreaming==true && streamingHandler!=null) {
+
                             Message streamMex = new Message();
                             streamMex.arg1=mediaWriteIndex;
-                            Log.e(TAG, "encoded ready to stream block:"+ mediaWriteIndex);
-
+                            //Log.e(TAG, "encoded ready to stream block:"+ mediaWriteIndex);
 
                             //LENTO
 
                             streamingHandler.sendMessage(streamMex);
+
                         }
 
                         mediaWriteIndex++;
@@ -1855,7 +2075,7 @@ public class TextureFromCameraActivity extends Activity
         }
     }
 
-    ;
+
 
 
     //EYE

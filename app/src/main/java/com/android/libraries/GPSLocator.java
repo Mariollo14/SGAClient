@@ -41,11 +41,18 @@ public class GPSLocator implements LocationListener {
     // The minimum distance to change Updates in meters
     private static final long MIN_DISTANCE_CHANGE_FOR_UPDATES = 1; // 2 meters
     // The minimum time between updates in milliseconds
-    private static final long MIN_TIME_BW_UPDATES = 2000; // 2sec
+    private static final long MIN_TIME_BW_UPDATES = 200; //200ms
+
+    private static final int ATTEMPT_TO_GET_BEST_INITIAL_ACCURACY = 10;
+
+    private static final int ACCURACY_THRESHOLD = 10;
+
 
 
     public GPSLocator(TextureFromCameraActivity act, SimParameters simulation) {
         activity = act;
+        this.simulation = simulation;
+
         locationManager = (LocationManager) activity.getSystemService(Context.LOCATION_SERVICE);
 
 
@@ -54,8 +61,19 @@ public class GPSLocator implements LocationListener {
         criteria.setPowerRequirement(Criteria.NO_REQUIREMENT);
         locationManager.getBestProvider(criteria, true);
 
-        location = requestLocationUpdate();
-        this.simulation = simulation;
+        Location temp=null;
+        for(int i = 0; i < ATTEMPT_TO_GET_BEST_INITIAL_ACCURACY; i++){
+            temp=requestLocationUpdate();
+
+            if(temp!=null && location!=null){
+                Log.e("GPS ACCURACY","ray:"+temp.getAccuracy());
+                if(temp.getAccuracy()<location.getAccuracy())location=temp;
+                continue;
+            }
+            if(location==null)location=temp;
+        }
+        //location = requestLocationUpdate();
+
 
     }
 
@@ -84,13 +102,14 @@ public class GPSLocator implements LocationListener {
 
         //if(newLocation.getAccuracy()<50){}
         if(newLocation!=null) {
-            String loc = "lat:"+newLocation.getLongitude()+" long:"+newLocation.getLongitude()+ " alt:"+newLocation.getAltitude();
-            location = newLocation;
-            TextureFromCameraActivity.MainHandler mainH = activity.getMainHandler();
-            if(mainH!=null)
-                mainH.sendLocalization(loc);
-            //Log.e("LOCATION UPDATED", loc );
-
+            if(newLocation.getAccuracy()<=ACCURACY_THRESHOLD) {
+                String loc = "lat:" + newLocation.getLongitude() + " long:" + newLocation.getLongitude() + " alt:" + newLocation.getAltitude();
+                location = newLocation;
+                TextureFromCameraActivity.MainHandler mainH = activity.getMainHandler();
+                if (mainH != null)
+                    mainH.sendLocalization(loc);
+                //Log.e("LOCATION UPDATED", loc );
+            }
         }
     }
 
@@ -121,6 +140,7 @@ public class GPSLocator implements LocationListener {
             // Getting GPS status
             isGPSEnabled = locationManager
                     .isProviderEnabled(LocationManager.GPS_PROVIDER);
+            //Log.e("GPSENABLED",isGPSEnabled+"");
             /*
             Are you sure you mean signal strength vs. accuracy? What good is the signal strength? Since the GPS position is determined via many satellites, you don't have "one" signal strength.
             So assuming that you really mean signal strength, you can get the GpsStatus via LocationManager.getGpsStatus(), and that gives you a list of satellites via getSatellites()', and each one of those has a signal-to-noise ratio (getSnr()).
