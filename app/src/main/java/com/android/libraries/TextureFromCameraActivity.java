@@ -167,8 +167,8 @@ public class TextureFromCameraActivity extends Activity
     //EYE
     //private final int ServerPort = 8080;
     private final int StreamingPort = 8088;
-    private final int PictureWidth = 480;
-    private final int PictureHeight = 360;
+    private final int PictureWidth = 640;//480;
+    private final int PictureHeight = 480;//360;
     private static final int MediaBlockNumber = 6;
     private static final int MediaBlockSize = 131072;//1024 * 512;//
     private final int EstimatedFrameNumber = 1;//30;
@@ -945,6 +945,7 @@ public class TextureFromCameraActivity extends Activity
             //onCameraReady fragment
             mCamera.stopPreview();
 
+            Log.e("PICTURE WH","w:"+PictureWidth+" H:"+PictureHeight);
             Camera.Size chosenSize = setupCamera(PictureWidth, PictureHeight, 4, 25.0, previewCb);
             Log.e(TAG, "camW:" + chosenSize.width + " camH:" + chosenSize.height);
 
@@ -981,6 +982,7 @@ public class TextureFromCameraActivity extends Activity
             procSize_.width = supportedSizes.get(targetIndex).width;
             procSize_.height = supportedSizes.get(targetIndex).height;
 
+
             diff = Math.abs(supportedFrameRate.get(0)[0] * supportedFrameRate.get(0)[1] - fps * fps * 1000 * 1000);
             targetIndex = 0;
             for (int i = 1; i < supportedFrameRate.size(); i++) {
@@ -994,7 +996,7 @@ public class TextureFromCameraActivity extends Activity
             int targetMinFrameRate = supportedFrameRate.get(targetIndex)[1];
 
             Camera.Parameters p = mCamera.getParameters();
-            //p.setPreviewSize(procSize_.width, procSize_.height);
+            p.setPreviewSize(procSize_.width, procSize_.height);
             Log.e("Preview Size set to:", "w:" + procSize_.width + " h:" + procSize_.height);
             p.setPreviewFormat(ImageFormat.NV21);
             //p.setPreviewFormat(ImageFormat.YV12);//YUV - N21
@@ -1051,7 +1053,7 @@ public class TextureFromCameraActivity extends Activity
             }
             mCamera.setPreviewCallbackWithBuffer(cb);
 
-            return supportedSizes.get(targetIndex);
+            return camerasize;//supportedSizes.get(targetIndex);
         }
 
         /**
