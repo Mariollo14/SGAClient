@@ -4,6 +4,9 @@ import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.location.Location;
+import android.location.LocationManager;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -18,11 +21,12 @@ import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.android.libraries.location.LocationFusionStrategy;
+
 import java.lang.ref.WeakReference;
 
 
 public class StartActivity extends AppCompatActivity {
-
 
 
     private static final String TAG = "StartActivity";
@@ -61,13 +65,10 @@ public class StartActivity extends AppCompatActivity {
     }
 
 
-
-
     @Override
     protected void onResume() {
 
         super.onResume();
-
 
 
         requestCameraPermission();
@@ -112,16 +113,53 @@ public class StartActivity extends AppCompatActivity {
 
                 case MSG_START: {
                     //Log.e(TAG, "cam:"+activity.hasCameraPermission+" loc:"+activity.hasLocalizationPermission+" int:"+activity.hasInternetPermission);
-                    if(activity.hasCameraPermission && activity.hasLocalizationPermission && activity.hasInternetPermission) {
-                        Log.e(TAG, "msg.arg1:"+(String)msg.obj);
+                    if (activity.hasCameraPermission && activity.hasLocalizationPermission && activity.hasInternetPermission) {
+                        Log.e(TAG, "msg.arg1:" + (String) msg.obj);
                         activity.startTV.setText((String) msg.obj);
                         activity.startTV.setOnClickListener(new View.OnClickListener() {
                             @Override
                             public void onClick(View v) {
 
-                                Intent intent = new Intent(activity, TextureFromCameraActivity.class);
+                                activity.startTV.setClickable(false);
+                                // The Very Basic
+                                new AsyncTask<Void, Void, Void>() {
+                                    protected void onPreExecute() {
+                                        // Pre Code
+                                    }
 
-                                activity.startActivity(intent);
+                                    protected Void doInBackground(Void... unused) {
+                                        // Background Code
+
+
+                                        LocationManager locationManager = (LocationManager) activity.getSystemService(Context.LOCATION_SERVICE);
+                                        if (ActivityCompat.checkSelfPermission(activity, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(activity, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                                            // TODO: Consider calling
+                                            //    ActivityCompat#requestPermissions
+                                            // here to request the missing permissions, and then overriding
+                                            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                                            //                                          int[] grantResults)
+                                            // to handle the case where the user grants the permission. See the documentation
+                                            // for ActivityCompat#requestPermissions for more details.
+                                            return null;
+                                        }
+                                        Location lastKnownLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+                                        if(lastKnownLocation==null)
+                                            lastKnownLocation = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+
+                                        //LocationFusionStrategy.getAltitudeThroughService(lastKnownLocation.getLongitude(),lastKnownLocation.getLatitude());
+                                        LocationFusionStrategy.getAltitudeFromGoogleMaps(lastKnownLocation.getLongitude(),lastKnownLocation.getLatitude());
+                                        return null;
+                                    }
+                                    protected void onPostExecute(Void unused) {
+                                        // Post Code
+                                        Intent intent = new Intent(activity, TextureFromCameraActivity.class);
+
+                                        activity.startActivity(intent);
+
+                                        activity.startTV.setClickable(true);
+                                    }
+                                }.execute();
+
 
                             }
                         });

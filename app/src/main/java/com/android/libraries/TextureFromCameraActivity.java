@@ -1,18 +1,14 @@
 package com.android.libraries;
 
-import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.graphics.ImageFormat;
 import android.graphics.PixelFormat;
 import android.graphics.SurfaceTexture;
-import android.graphics.YuvImage;
 import android.hardware.Camera;
-import android.location.Location;
 import android.net.wifi.WifiManager;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
@@ -22,8 +18,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.provider.Settings;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.Surface;
@@ -31,9 +25,7 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.WindowManager;
-import android.widget.RelativeLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.android.libraries.gles.Drawable2d;
 import com.android.libraries.gles.EglCore;
@@ -41,9 +33,13 @@ import com.android.libraries.gles.GlUtil;
 import com.android.libraries.gles.Sprite2d;
 import com.android.libraries.gles.Texture2dProgram;
 import com.android.libraries.gles.WindowSurface;
+import com.android.libraries.location.GPSLocator;
+import com.android.libraries.location.GeoLocator;
+import com.android.libraries.location.GoogleServicesLocator;
+import com.android.libraries.location.LocationFusionStrategy;
+import com.android.libraries.location.kalman.KalmanLocator;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.math.BigInteger;
 import java.net.InetAddress;
@@ -51,9 +47,8 @@ import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
-import java.util.Properties;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -64,7 +59,6 @@ import android.hardware.Camera.PreviewCallback;
 import org.java_websocket.WebSocket;
 import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.server.WebSocketServer;
-import org.w3c.dom.Text;
 
 import javax.microedition.khronos.egl.EGL10;
 import javax.microedition.khronos.egl.EGLConfig;
@@ -160,7 +154,9 @@ public class TextureFromCameraActivity extends Activity
 
 
     private Double xG, yG, zG;
-    private GPSLocator myLocator;
+    //private GPSLocator gpsLocator;
+    //private GoogleServicesLocator googleLocator;
+    private LocationFusionStrategy locationFusion;
     private SensorFusion mySensorFusion;
 
 
@@ -198,9 +194,21 @@ public class TextureFromCameraActivity extends Activity
 
 
         simulation = new SimParameters();
-        myLocator = new GPSLocator(this, simulation);
+        GPSLocator gpsLocator = new GPSLocator(this, simulation);
+        GoogleServicesLocator googleLocator = new GoogleServicesLocator(this,false);
+        //KalmanLocator kalmanLocator = new KalmanLocator(this.getApplicationContext(),this);
+
+        //ArrayList<GeoLocator> locators = new ArrayList<GeoLocator>();
+        //locators.add(gpsLocator);
+        //locators.add(googleLocator);
+        //locators.add(kalmanLocator);
+        locationFusion = new LocationFusionStrategy();
+        locationFusion.addGeoLocator(gpsLocator,false);
+        locationFusion.addGeoLocator(googleLocator,false);
+
+
         mySensorFusion = new SensorFusion(this);
-        jpctWorldManager = new JPCTWorldManager(this, simulation, myLocator, 0);
+        jpctWorldManager = new JPCTWorldManager(this, simulation, locationFusion, 0);
 
         super.onCreate(savedInstanceState);
         getWindow().setFormat(PixelFormat.TRANSLUCENT);
@@ -268,14 +276,14 @@ public class TextureFromCameraActivity extends Activity
         LOCview.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Location l = myLocator.requestLocationUpdate();
-                myLocator.onLocationChanged(l);
+                //Location l = gpsLocator.requestLocationUpdate();
+                //gpsLocator.onLocationChanged(l);
+
+                locationFusion.getAsynchBestLocationAmongLocators();
 
             }
         });
-        Location l = myLocator.requestLocationUpdate();
-        myLocator.onLocationChanged(l);
-
+        locationFusion.getAsynchBestLocationAmongLocators();
 
 
         IPview = (TextView)this.findViewById(R.id.ipaddressTV);
@@ -376,7 +384,17 @@ public class TextureFromCameraActivity extends Activity
 
 
         mGLView.onResume();
-        myLocator.requestLocationUpdate();
+        locationFusion.resumeLocators();
+        //gpsLocator.requestLocationUpdate();
+
+        //googleLocator.setRequestingLocationUpdates(true);
+
+        /*
+        if (googleLocator.isConnected() && !googleLocator.isRequestingLocationUpdates()) {
+            googleLocator.startLocationUpdates();
+        }
+        */
+
         mySensorFusion.initListeners();
         //try catch mario
         //try {
@@ -423,7 +441,10 @@ public class TextureFromCameraActivity extends Activity
     protected void onPause() {
 
         mGLView.onPause();
-        myLocator.stopUsingGPS();
+        //gpsLocator.stopUsingGPS();
+        //googleLocator.stopLocationUpdates();
+
+        locationFusion.pauseLocators();
         mySensorFusion.unregisterListeners();
         super.onPause();
 
@@ -655,6 +676,44 @@ public class TextureFromCameraActivity extends Activity
 
 
     /**
+     * Function to show settings alert dialog.
+     * On pressing the Settings button it will launch Settings Options.
+     *
+     * TO FIX : has to be called within the main thread context
+     *
+     * */
+    public void showSettingsAlert(){
+        AlertDialog.Builder alertDialog = new AlertDialog.Builder(this);
+
+        // Setting Dialog Title
+        alertDialog.setTitle("GPS is settings");
+
+        // Setting Dialog Message
+        alertDialog.setMessage("GPS is not enabled. Do you want to go to settings menu?");
+
+        // On pressing the Settings button.
+        alertDialog.setPositiveButton("Settings", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog,int which) {
+                Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+                startActivity(intent);
+            }
+        });
+
+        // On pressing the cancel button
+        alertDialog.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.cancel();
+            }
+        });
+
+        // Showing Alert Message
+        alertDialog.show();
+    }
+
+
+
+
+    /**
      * Custom message handler for main UI thread.
      * <p/>
      * Receives messages from the renderer thread with UI-related updates, like the camera
@@ -669,7 +728,7 @@ public class TextureFromCameraActivity extends Activity
         private static final int MSG_SET_TEMP_TV = 5;
         private static final int MSG_SET_LOCALIZATION = 6;
         private static final int MSG_SET_VIRTUALCOORS = 7;
-
+        private static final int MSG_SHOW_SETTINGS_ALERT = 8;
 
 
         private WeakReference<TextureFromCameraActivity> mWeakActivity;
@@ -731,6 +790,13 @@ public class TextureFromCameraActivity extends Activity
             sendMessage(obtainMessage(MSG_SET_VIRTUALCOORS, coors));
         }
 
+
+        public void sendSettingsAlertMessage() {
+            sendMessage(obtainMessage(MSG_SHOW_SETTINGS_ALERT));
+        }
+
+
+
         @Override
         public void handleMessage(Message msg) {
             TextureFromCameraActivity activity = mWeakActivity.get();
@@ -788,10 +854,15 @@ public class TextureFromCameraActivity extends Activity
                     activity.virtualCoorsView.setText(coors);
                     break;
                 }
+                case MSG_SHOW_SETTINGS_ALERT: {
+                    activity.showSettingsAlert();
+                    break;
+                }
                 default:
                     throw new RuntimeException("Unknown message " + msg.what);
             }
         }
+
     }
 
 

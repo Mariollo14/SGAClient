@@ -1,4 +1,4 @@
-package com.android.libraries;
+package com.android.libraries.location;
 
 import android.Manifest;
 import android.app.AlertDialog;
@@ -13,13 +13,15 @@ import android.location.LocationManager;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
 import android.util.Log;
+
+import com.android.libraries.SimParameters;
+import com.android.libraries.TextureFromCameraActivity;
 
 /**
  * Created by Mario Salierno on 13/03/2016.
  */
-public class GPSLocator implements LocationListener {
+public class GPSLocator implements LocationListener, GeoLocator {
 
     private String TAG = "GPSLocator";
 
@@ -48,6 +50,7 @@ public class GPSLocator implements LocationListener {
     private static int ACCURACY_THRESHOLD = 300;
     private static final int MIN_ACCURACY = 30;
 
+    private boolean askedOnce = false;
 
 
     public GPSLocator(TextureFromCameraActivity act, SimParameters simulation) {
@@ -62,21 +65,68 @@ public class GPSLocator implements LocationListener {
         criteria.setPowerRequirement(Criteria.NO_REQUIREMENT);
         locationManager.getBestProvider(criteria, true);
 
-        Location temp=null;
-        for(int i = 0; i < ATTEMPT_TO_GET_BEST_INITIAL_ACCURACY; i++){
-            temp=requestLocationUpdate();
+        Location temp = null;
+        for (int i = 0; i < ATTEMPT_TO_GET_BEST_INITIAL_ACCURACY; i++) {
+            temp = requestLocationUpdate();
 
-            if(temp!=null && location!=null){
-                Log.e("GPS ACCURACY","ray:"+temp.getAccuracy());
-                if(temp.getAccuracy()<location.getAccuracy())location=temp;
+            if (temp != null && location != null) {
+                Log.e("GPS ACCURACY", "ray:" + temp.getAccuracy());
+                if (temp.getAccuracy() < location.getAccuracy()) location = temp;
                 continue;
             }
-            if(location==null)location=temp;
+            if (location == null) location = temp;
         }
-        if(temp==null)Log.e(TAG,"temp=NULL");
-        if(location==null)Log.e(TAG,"location=NULL");
+        if (temp == null) Log.e(TAG, "temp=NULL");
+        if (location == null) {
+            location = getLastKnownLocation();
+            //Log.e(TAG,"location=NULL");
+        }
         //location = requestLocationUpdate();
 
+
+    }
+
+
+    @Override
+    public void startUpdates() {
+
+        requestLocationUpdate();
+    }
+
+    @Override
+    public void stopUpdates() {
+
+        stopUsingGPS();
+        askedOnce = false;
+    }
+
+    @Override
+    public Location getCurrentLocation() {
+        return location;
+    }
+
+    @Override
+    public Location requestAsynchLocationUpdate() {
+        return requestLocationUpdate();
+    }
+
+    public Location getLastKnownLocation() {
+        if (ActivityCompat.checkSelfPermission(activity, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(activity, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return null;
+        }
+
+        Location temp = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+        if(temp!=null)
+            return temp;
+        else
+            return locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
 
     }
 
@@ -84,7 +134,7 @@ public class GPSLocator implements LocationListener {
      * Stop using GPS listener
      * Calling this function will stop using GPS in your app.
      * */
-    public void stopUsingGPS() {
+    private void stopUsingGPS() {
         try {
             if (locationManager != null) {
                 locationManager.removeUpdates(GPSLocator.this);
@@ -112,7 +162,7 @@ public class GPSLocator implements LocationListener {
                 TextureFromCameraActivity.MainHandler mainH = activity.getMainHandler();
                 if (mainH != null)
                     mainH.sendLocalization(loc);
-                Log.e("LOCATION UPDATED", loc );
+                Log.e("LOCATION UPDATED acc:"+ACCURACY_THRESHOLD, loc );
             }
         }
     }
@@ -132,11 +182,8 @@ public class GPSLocator implements LocationListener {
 
     }
 
-    public Location getLocation(){
-        return location;
-    }
 
-    public Location requestLocationUpdate() {
+    private Location requestLocationUpdate() {
         try {
             locationManager = (LocationManager) activity
                     .getSystemService(Context.LOCATION_SERVICE);
@@ -152,17 +199,19 @@ public class GPSLocator implements LocationListener {
             */
 
             // Getting network status
-            isNetworkEnabled = locationManager
-                    .isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+            isNetworkEnabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
 
 
+            if(!isGPSEnabled&&!askedOnce) {
 
-            if(!isGPSEnabled)
-                showSettingsAlert();
-
+                TextureFromCameraActivity.MainHandler mainH = activity.getMainHandler();
+                if (mainH != null)
+                    mainH.sendSettingsAlertMessage();
+                askedOnce=true;
+            }
             if (!isGPSEnabled && !isNetworkEnabled) {
                 // No network provider is enabled
-                Log.d("GPSLocator", "nor gps or network is enabled");
+                Log.e("GPSLocator", "nor gps or network is enabled");
             }
             else {
                 this.canGetLocation = true;
@@ -211,9 +260,6 @@ public class GPSLocator implements LocationListener {
             se.printStackTrace();
             //checkPermissions();
         }
-        catch (Exception e) {
-            e.printStackTrace();
-        }
 
         return location;
     }
@@ -254,35 +300,5 @@ public class GPSLocator implements LocationListener {
     }
 
 
-    /**
-     * Function to show settings alert dialog.
-     * On pressing the Settings button it will launch Settings Options.
-     * */
-    public void showSettingsAlert(){
-        AlertDialog.Builder alertDialog = new AlertDialog.Builder(activity);
 
-        // Setting Dialog Title
-        alertDialog.setTitle("GPS is settings");
-
-        // Setting Dialog Message
-        alertDialog.setMessage("GPS is not enabled. Do you want to go to settings menu?");
-
-        // On pressing the Settings button.
-        alertDialog.setPositiveButton("Settings", new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog,int which) {
-                Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
-                activity.startActivity(intent);
-            }
-        });
-
-        // On pressing the cancel button
-        alertDialog.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int which) {
-                dialog.cancel();
-            }
-        });
-
-        // Showing Alert Message
-        alertDialog.show();
-    }
 }

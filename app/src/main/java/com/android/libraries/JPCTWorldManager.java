@@ -7,11 +7,11 @@ import android.graphics.drawable.Drawable;
 import android.hardware.SensorManager;
 import android.location.Location;
 import android.opengl.GLSurfaceView;
-import android.service.dreams.DreamService;
 import android.support.v4.content.res.ResourcesCompat;
 import android.util.Log;
 
 import com.android.libraries.jpctutils.Terrain;
+import com.android.libraries.location.LocationFusionStrategy;
 import com.threed.jpct.Camera;
 import com.threed.jpct.Config;
 import com.threed.jpct.*;
@@ -58,7 +58,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
     private TextureFromCameraActivity activity;
     private GLSurfaceView mGLView;
     private SimParameters simulation;
-    private GPSLocator gpsLocator;
+    LocationFusionStrategy locationFusion;
     //Location lastLocation;
     //Location myLoc;
     Location zeroLoc=null;
@@ -85,13 +85,19 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
 
     }
 
-    public JPCTWorldManager(TextureFromCameraActivity activity, SimParameters simulation, GPSLocator gpsLocator, Integer CAMERA_HEIGHT) {
+    public JPCTWorldManager(TextureFromCameraActivity activity,
+                            SimParameters simulation,
+                            LocationFusionStrategy locationFusion,
+                            Integer CAMERA_HEIGHT) {
+
         this.activity = activity;
         this.simulation=simulation;
-        this.gpsLocator=gpsLocator;
+        this.locationFusion=locationFusion;
 
         if(CAMERA_HEIGHT!=null)
             this.CAMERA_HEIGHT=CAMERA_HEIGHT;
+
+
     }
 
 
@@ -500,20 +506,25 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
     }
 
 
+
     public void manageObjectsCreation2(){
 
         world.removeAllObjects();
 
+
         int attempt = 10;
         while(zeroLoc==null && attempt>0) {
-            zeroLoc = gpsLocator.getLocation();
+            //zeroLoc = gpsLocator.getLocation();
+            zeroLoc=locationFusion.getAsynchBestLocationAmongLocators();
             attempt--;
         }
+
 
 
         if(zeroLoc!=null) {
             //Log.e("CAMERA POS", "x:"+xCAMERA+" y:"+yCAMERA+" z:"+zCAMERA);
             Log.e("ZEROLOC","altitude:"+zeroLoc.getAltitude());
+            //locationFusion.smoothAltitudeValueThroughService(zeroLoc);
             for (String targetID : simulation.getTargetLocations().keySet()) {
                 Location target = simulation.getTargetLocations().get(targetID);
 
@@ -576,9 +587,11 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
 
         int attempt = 10;
         while(zeroLoc==null && attempt>0) {
-            zeroLoc = gpsLocator.getLocation();
+            //zeroLoc = gpsLocator.getLocation();
+            zeroLoc=locationFusion.getAsynchBestLocationAmongLocators();
             attempt--;
         }
+
 
 
         if(zeroLoc!=null) {
@@ -668,10 +681,17 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         //if(true)return;
 
         //Log.e("handleCamPosSpherical", "1");
-        Location currLoc = gpsLocator.getLocation();
+        //Location currLoc = gpsLocator.getLocation();
+        //Location gCurrLoc = googleServicesLocator.getCurrentLocation();
+
+        Location currLoc = locationFusion.getBestLocationAmongLocators();
+
         if(currLoc==null)return;
 
         Location newLoc = new Location(currLoc);
+
+        //locationFusion.smoothAltitudeValueThroughService(newLoc);
+
 
         if(newLoc!=null) {
                 //Log.e("handleCamPosSpherical", "2");
