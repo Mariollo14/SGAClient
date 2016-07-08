@@ -738,7 +738,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
                 //Log.e("CAMERA POSITION", "x:"+x+" y:"+y+" z:"+z);
 
 
-                if(x.floatValue()-xCAMERA>=1 || y.floatValue()-yCAMERA>=1 || z.floatValue()-zCAMERA>=1) {
+                if(true/*x.floatValue()-xCAMERA>=1 || y.floatValue()-yCAMERA>=1 || z.floatValue()-zCAMERA>=1*/) {
 
                     xCAMERA = x.floatValue();
                     yCAMERA = y.floatValue();
