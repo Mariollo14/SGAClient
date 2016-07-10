@@ -40,8 +40,11 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
     private int SKYBOX_DIM = 8192;//1024;
     private int CAMERA_HEIGHT = 0;//default value
     private int GROUND_ALTITUDE = -20;
+    private double Y_FOV_VALUE = 0; //in degrees
+
     //private World sky = null;
     private Light sun = null;
+
     //ground
     private Object3D ground;
     private SimpleVector groundTransformedCenter;
@@ -113,9 +116,19 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         Config.maxPolysVisible = 1000;
         //Config.glColorDepth = 24;
         //Config.glFullscreen = false;
+
+        //TO FIX setting right value
         Config.farPlane = 4000;
         //Config.glShadowZBias = 0.8f;
         //Config.lightMul = 1;
+
+        /*
+        If set to true, buffers for uploading the textures will be reused if possible.
+        This can improve texture upload speed and may reduce garbage collection activity during uploads
+        but it can lead to peaks in memory usage. Default is false.
+        Config.reuseTextureBuffers=true;
+        */
+        Config.reuseTextureBuffers=true;
 
         /*
         collideOffset is needed to make the Collision detection work with the plane.
@@ -142,7 +155,14 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         sun = new Light(world);
         sun.setIntensity(128, 128, 128);
         //sun.setIntensity(255, 255, 255);
-        world.getCamera().setPosition(0,0,CAMERA_HEIGHT);
+        Camera worldCam = world.getCamera();
+        worldCam.setPosition(0,0,CAMERA_HEIGHT);
+
+        //Double fov = toRad(Y_FOV_VALUE);
+        //worldCam.setYFovAngle(fov.floatValue());
+        //worldCam.setFovAngle(fov.floatValue());
+        //worldCam.se
+        //worldCam.setFOVLimits(0.7f,1.3f);
 
         /*
             Two worlds because one is for the scene itself and one is for the sky dome.
@@ -161,6 +181,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
 
 
     private void setUpSkyBox(){
+        //TO FIX vedi classe BitmapHelper jpct
         String textureID = "groundTexture";
 
         TextureManager txtManager = TextureManager.getInstance();
@@ -456,6 +477,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         //handleCameraPosition();
         handleCameraPositionSpherical();
         handleCameraRotations();
+        //createCubesOnTheJPCTAxis();
         world.renderScene(frameBuffer);
          //the scene is drawn on the frame buffer.
         if(skybox!=null)
@@ -472,7 +494,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
     // transform gps-points to the correspending screen-points on the android device
     public void createCubesOnTheJPCTAxis(){
 
-
+        world.removeAllObjects();
         final Double DISTANCE = 25.0;
 
 
@@ -536,8 +558,8 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
                 //float azimuth = newLoc.bearingTo(zeroLoc) - bearingAngleOfView;
                 //Log.e("bearingAngleOfView",bearingAngleOfView+"");
 
-                float theta = zeroLoc.bearingTo(target);// - bearingAngleOfView;
-                //Log.e("theta", theta+"");
+                float theta = 90 - zeroLoc.bearingTo(target);// - bearingAngleOfView;
+                Log.e("bearing", theta+" "+targetID);
                 Double thetaD = toRad((double) theta);
 
                 Double z = target.getAltitude() - zeroLoc.getAltitude();
@@ -708,7 +730,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
                 //float azimuth = newLoc.bearingTo(zeroLoc) - bearingAngleOfView;
                 //Log.e("bearingAngleOfView",bearingAngleOfView+"");
 
-                float theta = zeroLoc.bearingTo(newLoc);// - bearingAngleOfView;
+                float theta = 90- zeroLoc.bearingTo(newLoc);// - bearingAngleOfView;
                 //Log.e("theta", theta+"");
                 Double thetaD = toRad((double) theta);
 

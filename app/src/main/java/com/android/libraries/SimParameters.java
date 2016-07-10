@@ -10,6 +10,7 @@ import java.util.Map;
 /**
  * Created by Mario Salierno on 14/03/2016.
  */
+//http://www.coordinate-gps.it/
 public class SimParameters {
 
     private Map<String,Location> targetLocations = new HashMap<String,Location>();

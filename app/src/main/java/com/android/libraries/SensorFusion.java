@@ -51,6 +51,8 @@ public class SensorFusion implements SensorEventListener {
 
 
 
+    //http://stackoverflow.com/questions/11822424/implementing-jkalman-on-android
+    //https://www.google.it/webhp?sourceid=chrome-instant&ion=1&espv=2&ie=UTF-8#q=filtro%20di%20kalman%20android
     public SensorFusion(TextureFromCameraActivity act) {
         this.activity=act;
 

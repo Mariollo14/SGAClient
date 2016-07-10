@@ -63,6 +63,7 @@ public class GPSLocator implements LocationListener, GeoLocator {
         Criteria criteria = new Criteria();
         criteria.setAccuracy(Criteria.ACCURACY_FINE);
         criteria.setPowerRequirement(Criteria.NO_REQUIREMENT);
+
         locationManager.getBestProvider(criteria, true);
 
         Location temp = null;
@@ -191,6 +192,7 @@ public class GPSLocator implements LocationListener, GeoLocator {
             // Getting GPS status
             isGPSEnabled = locationManager
                     .isProviderEnabled(LocationManager.GPS_PROVIDER);
+
             //Log.e("GPSENABLED",isGPSEnabled+"");
             /*
             Are you sure you mean signal strength vs. accuracy? What good is the signal strength? Since the GPS position is determined via many satellites, you don't have "one" signal strength.
