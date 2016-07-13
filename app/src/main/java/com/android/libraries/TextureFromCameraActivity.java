@@ -9,6 +9,7 @@ import android.graphics.ImageFormat;
 import android.graphics.PixelFormat;
 import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
+import android.hardware.SensorListener;
 import android.net.wifi.WifiManager;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
@@ -157,7 +158,8 @@ public class TextureFromCameraActivity extends Activity
     //private GPSLocator gpsLocator;
     //private GoogleServicesLocator googleLocator;
     private LocationFusionStrategy locationFusion;
-    private SensorFusion mySensorFusion;
+    //private SensorFusion mySensorFusion;
+    private SensorHandler sensorHandler;
 
 
     //EYE
@@ -202,12 +204,14 @@ public class TextureFromCameraActivity extends Activity
         //locators.add(gpsLocator);
         //locators.add(googleLocator);
         //locators.add(kalmanLocator);
-        locationFusion = new LocationFusionStrategy();
+        locationFusion = new LocationFusionStrategy(this);
         locationFusion.addGeoLocator(gpsLocator,false);
         locationFusion.addGeoLocator(googleLocator,false);
 
 
-        mySensorFusion = new SensorFusion(this);
+        //mySensorFusion = new SensorFusion(this);
+        sensorHandler = new SensorHandler(this);
+
         jpctWorldManager = new JPCTWorldManager(this, simulation, locationFusion, 0);
 
         super.onCreate(savedInstanceState);
@@ -392,7 +396,8 @@ public class TextureFromCameraActivity extends Activity
         }
         */
 
-        mySensorFusion.initListeners();
+        //mySensorFusion.initListeners();
+        sensorHandler.initListeners();
         //try catch mario
         //try {
 
@@ -442,7 +447,9 @@ public class TextureFromCameraActivity extends Activity
         //googleLocator.stopLocationUpdates();
 
         locationFusion.pauseLocators();
-        mySensorFusion.unregisterListeners();
+        //mySensorFusion.unregisterListeners();
+        sensorHandler.unregisterListeners();
+
         super.onPause();
 
         if (mRenderThread != null) {

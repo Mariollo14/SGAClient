@@ -23,8 +23,13 @@ import com.threed.jpct.SimpleVector;
 import com.threed.jpct.Texture;
 import com.threed.jpct.TextureManager;
 import com.threed.jpct.World;
+import com.threed.jpct.util.BitmapHelper;
 import com.threed.jpct.util.SkyBox;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 
 import javax.microedition.khronos.egl.EGLConfig;
@@ -41,6 +46,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
     private int CAMERA_HEIGHT = 0;//default value
     private int GROUND_ALTITUDE = -20;
     private double Y_FOV_VALUE = 0; //in degrees
+    private final int X_TO_NORTH_ANGLE = 90;
 
     //private World sky = null;
     private Light sun = null;
@@ -323,27 +329,15 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
             if(id.equals("rosina")){
                 txt = new Texture(64,64,RGBColor.RED);
             }
-            else if(id.equals("trueN")){
-                txt = new Texture(64,64,RGBColor.WHITE);
-                txtManager.addTexture(id, txt);
-                int dim = 1000000;//(int) (500 / z);
-
-                Object3D cube = Primitives.getCube(dim);
-
-                cube.translate(x, y, z);
-                cube.setTexture(id);
-                cube.setName(id);
-                world.addObject(cube);
-                return;
-            }
             else if(id.equals("sanpaolo")){
                 txt = new Texture(64,64,RGBColor.RED);
                 txtManager.addTexture(id, txt);
-                int dim = 10;//(int) (500 / z);
+                int dim = 5;//(int) (500 / z);
 
                 Object3D cube = Primitives.getCube(dim);
 
                 cube.translate(x, y, z);
+                cube.rotateX((float) Math.toRadians(90.0));
                 cube.setTexture(id);
                 cube.setName(id);
                 world.addObject(cube);
@@ -408,7 +402,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         else
             txt = txtManager.getTexture(id);
 
-        int dim = 10;//(int) (500 / z);
+        int dim = 1;//(int) (500 / z);
 
         Object3D cube = Primitives.getCube(dim);
 
@@ -421,6 +415,124 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
     }
 
 
+    //http://stackoverflow.com/questions/15298130/load-3d-models-with-jpct-ae
+    public class TexturedObject{
+
+        public String id;
+        public int textureId;
+        public float x,y,z;
+        public int dimension;
+        public int scale;
+        public Texture texture;
+        public Object3D obj3D;
+
+        //public String texturePath;
+
+        public TexturedObject(String id,
+                              int textureId,///*p.e R.drawable.bigoffice*/
+                              //String texturePath,
+                              int scale,
+                              float x,
+                              float y,
+                              float z,
+                              int dim){
+            this.id=id;
+            this.textureId = textureId;
+            //this.texturePath=texturePath; //path = assets/
+            this.scale=scale;
+            this.x=x;
+            this.y=y;
+            this.z=z;
+            dimension=dim;
+            obj3D = loadTexture3DSFormat(id, scale, textureId);
+        }
+
+
+
+        ////txtrName for example for a named bman.3ds, it would be just bman
+        private Object3D loadTexture3DSFormat(String txtrName, int textureID/*p.e R.drawable.bigoffice*/, int thingScale /*= 1*/)
+        {
+
+            //TextureManager.getInstance().addTexture(txtrName + ".jpg", new Texture("res/" + txtrName + ".jpg"));
+            // Create a texture out of the icon...:-)
+            //texture = new Texture(BitmapHelper.rescale(BitmapHelper.convert(activity.getResources().getDrawable(R.drawable.ic_launcher)), 64, 64));
+            Log.e("TEXTUREchairID","chair:"+textureID);
+            Drawable image = ResourcesCompat.getDrawable(activity.getResources(), textureID , null);
+            //texture = new Texture(image);
+            texture = new Texture(BitmapHelper.convert(image));
+            TextureManager.getInstance().addTexture(txtrName, texture);
+
+
+            try {
+                Object3D objT = loadModel("assets/" + txtrName + ".3ds", thingScale);
+                //Primitives.getCube(10);
+                //cube.calcTextureWrapSpherical();
+                //cube.setTexture("texture");
+                //cube.strip();
+                objT.build();
+
+                return objT;
+            } catch (UnsupportedEncodingException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+
+
+            return null;
+        }
+
+
+        //http://stackoverflow.com/questions/15298130/load-3d-models-with-jpct-ae
+        private Object3D loadModel(String filename, float scale) throws UnsupportedEncodingException {
+
+            //InputStream stream = new ByteArrayInputStream(filename.getBytes("UTF-8"));
+            //InputStream stream = mContext.getAssets().open("FILENAME.3DS")
+            InputStream stream = null;
+            try {
+                stream = activity.getApplicationContext().getAssets().open(filename+".3ds");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            Object3D[] model = Loader.load3DS(stream, scale);
+            Object3D o3d = new Object3D(0);
+            Object3D temp = null;
+            for (int i = 0; i < model.length; i++) {
+                temp = model[i];
+                temp.setCenter(SimpleVector.ORIGIN);
+                temp.rotateX((float)( -.5*Math.PI));
+                temp.rotateMesh();
+                temp.setRotationMatrix(new Matrix());
+                o3d = Object3D.mergeObjects(o3d, temp);
+                o3d.build();
+            }
+            return o3d;
+        }
+    }
+
+    public void manageTexturedObjectCreation(TexturedObject tObj){
+        Log.e("object:"+tObj.id, "CREATED at:"+tObj.x+" y:"+tObj.y+" z:"+tObj.z);
+        TextureManager txtManager = TextureManager.getInstance();
+        Texture txt;
+        if(!txtManager.containsTexture(tObj.id)) {
+
+            txt = tObj.texture;
+
+
+        }
+        else
+            txt = txtManager.getTexture(tObj.id);
+
+
+        txtManager.addTexture(tObj.id, txt);
+
+        //Object3D cube = Primitives.getCube(tObj.dimension);
+        Object3D obj3D = tObj.obj3D;
+        obj3D.translate(tObj.x, tObj.y, tObj.z);
+        obj3D.setTexture(tObj.id);
+        obj3D.setName(tObj.id);
+        world.addObject(obj3D);
+
+    }
 
     //GLSurfaceView.Renderer methods onSurfaceCreated onSurfaceChanged onDrawFrame
     @Override
@@ -430,8 +542,16 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
 
         setUpWorld();
 
-
         manageObjectsCreation2();
+
+        TexturedObject tObj = new TexturedObject("wood1chair",
+                                                R.drawable.wood1chair,///*p.e R.drawable.bigoffice*/
+                                                1,
+                                                10,
+                                                10,
+                                                2,
+                                                5);
+        manageTexturedObjectCreation(tObj);
         //createCubesOnTheJPCTAxis();
         //createGroundPlane();
         /*
@@ -528,11 +648,17 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
     }
 
 
-
+    //http://tutorial.math.lamar.edu/Classes/CalcIII/SphericalCoords.aspx
     public void manageObjectsCreation2(){
 
         world.removeAllObjects();
 
+        /*
+        zeroLoc=new Location("asobrero");
+        zeroLoc.setLatitude(45.0808178);
+        zeroLoc.setLongitude(7.6655203);
+        zeroLoc.setAltitude(245);
+        */
 
         int attempt = 10;
         while(zeroLoc==null && attempt>0) {
@@ -544,6 +670,11 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
 
 
         if(zeroLoc!=null) {
+            Double zeroDeltaLat = zeroLoc.getLatitude()/*-0.002*/;
+            Double zeroDeltaLng = zeroLoc.getLongitude()/*-0.002*/;
+            zeroLoc.setLatitude(zeroDeltaLat);
+            zeroLoc.setLongitude(zeroDeltaLng);
+
             //Log.e("CAMERA POS", "x:"+xCAMERA+" y:"+yCAMERA+" z:"+zCAMERA);
             Log.e("ZEROLOC","altitude:"+zeroLoc.getAltitude());
             //locationFusion.smoothAltitudeValueThroughService(zeroLoc);
@@ -558,10 +689,13 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
                 //float azimuth = newLoc.bearingTo(zeroLoc) - bearingAngleOfView;
                 //Log.e("bearingAngleOfView",bearingAngleOfView+"");
 
-                float theta = 90 - zeroLoc.bearingTo(target);// - bearingAngleOfView;
-                Log.e("bearing", theta+" "+targetID);
+                float bearing = zeroLoc.bearingTo(target);
+                Log.e("manageObjectsCreation2", "bearing:"+bearing+" id:"+targetID);
+                float theta = X_TO_NORTH_ANGLE - bearing;// - bearingAngleOfView;
+                //Log.e("bearing", theta+" "+targetID);
+                Log.e("manageObjectsCreation2", "thetadeg:"+theta+" id:"+targetID);
                 Double thetaD = toRad((double) theta);
-
+                Log.e("manageObjectsCreation2", "thetarad:"+thetaD+" id:"+targetID);
                 Double z = target.getAltitude() - zeroLoc.getAltitude();
                 // z == p * Math.cos(phiD);
                 // cosPhi = z/p
@@ -584,7 +718,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
                 Double x = p * Math.sin(phiD) * Math.cos(thetaD);
                 Double y = p * Math.sin(phiD) * Math.sin(thetaD);
 
-                //Log.e("CAMERA POSITION", "x:"+x+" y:"+y+" z:"+z);
+                Log.e("manageObjectsCreation2", "x:"+x+" y:"+y+" z:"+z);
 
                 createPrimitiveCube(targetID, x.floatValue(), y.floatValue(), z.floatValue());
             }
@@ -617,6 +751,11 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
 
 
         if(zeroLoc!=null) {
+            Double zeroDeltaLat = zeroLoc.getLatitude()-0.05;
+            Double zeroDeltaLng = zeroLoc.getLongitude()-0.05;
+            zeroLoc.setLatitude(zeroDeltaLat);
+            zeroLoc.setLongitude(zeroDeltaLng);
+
             for (String targetID : simulation.getTargetLocations().keySet()) {
                 Location target = simulation.getTargetLocations().get(targetID);
 
@@ -730,7 +869,8 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
                 //float azimuth = newLoc.bearingTo(zeroLoc) - bearingAngleOfView;
                 //Log.e("bearingAngleOfView",bearingAngleOfView+"");
 
-                float theta = 90- zeroLoc.bearingTo(newLoc);// - bearingAngleOfView;
+                float bearing = zeroLoc.bearingTo(newLoc);
+                float theta = X_TO_NORTH_ANGLE - bearing;// - bearingAngleOfView;
                 //Log.e("theta", theta+"");
                 Double thetaD = toRad((double) theta);
 
@@ -779,7 +919,13 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
                                         "accuracyRay="+newLoc.getAccuracy()+"\n"+
                                         "zerolocisNULL="+zerolocisnull+"\n";
 
-                        if(!zerolocisnull)vcoors=vcoors+"zeroloc altitude="+zeroLoc.getAltitude()+"\n";
+                        vcoors=vcoors+"bearing: "+bearing+"\n";
+
+                        if(!zerolocisnull){
+                            vcoors=vcoors+"zeroloc altitude="+zeroLoc.getAltitude()+"\n";
+                            vcoors=vcoors+"zerloc lat: "+zeroLoc.getLatitude()+"\n";
+                            vcoors=vcoors+"zerloc lng: "+zeroLoc.getLongitude()+"\n";
+                        }
 
                         mainH.sendVirtualCoordinates(vcoors);
                     }
@@ -949,6 +1095,38 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         rotationMatrix=mat;
     }
 
+
+
+
+
+    //http://stackoverflow.com/questions/14740808/android-problems-calculating-the-orientation-of-the-device
+    /*
+    public void onSensorChanged(SensorEvent event)
+    {
+        // It is good practice to check that we received the proper sensor event
+        if (event.sensor.getType() == Sensor.TYPE_ROTATION_VECTOR)
+        {
+        // Convert the rotation-vector to a 4x4 matrix.
+        SensorManager.getRotationMatrixFromVector(mRotationMatrix,
+                event.values);
+        SensorManager
+                .remapCoordinateSystem(mRotationMatrix,
+                        SensorManager.AXIS_X, SensorManager.AXIS_Z,
+                        mRotationMatrix);
+        SensorManager.getOrientation(mRotationMatrix, orientationVals);
+
+        // Optionally convert the result from radians to degrees
+        orientationVals[0] = (float) Math.toDegrees(orientationVals[0]);
+        orientationVals[1] = (float) Math.toDegrees(orientationVals[1]);
+        orientationVals[2] = (float) Math.toDegrees(orientationVals[2]);
+
+        tv.setText(" Yaw: " + orientationVals[0] + "\n Pitch: "
+                + orientationVals[1] + "\n Roll (not used): "
+                + orientationVals[2]);
+
+        }
+    }
+    */
     public void handleCameraRotations(){
 
         if(rotationMatrix==null)return;
@@ -961,9 +1139,10 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
             // rotationMatrix before using
             // it with camera.setBack:
             float[] result = new float[9];
-            SensorManager.remapCoordinateSystem(
-                    rotationMatrix, SensorManager.AXIS_MINUS_Y,
-                                    SensorManager.AXIS_MINUS_X, result);
+            //SensorManager.remapCoordinateSystem(rotationMatrix, SensorManager.AXIS_MINUS_Y, SensorManager.AXIS_MINUS_X, result);
+            // -Y of jpct cooresponds to X of sensor system -> x sensor = -y jpct = east
+            // -X of jpct cooresponds to Y of sensor system -> y sensor = -x jpct = nord
+            SensorManager.remapCoordinateSystem(rotationMatrix, SensorManager.AXIS_MINUS_Y, SensorManager.AXIS_MINUS_X, result);
             com.threed.jpct.Matrix mResult = new com.threed.jpct.Matrix();
             copyMatrix(result, mResult);
             cam.setBack(mResult);
@@ -976,11 +1155,25 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
 
     }
 
+
+
     private void copyMatrix(float[] src, com.threed.jpct.Matrix dest) {
-        dest.setRow(0, src[0], src[1], src[2],   0);
-        dest.setRow(1, src[3], src[4], src[5],   0);
-        dest.setRow(2, src[6], src[7], src[8],   0);
-        dest.setRow(3,     0f,     0f,     0f,  1f);
+        if(src.length==9) {
+            dest.setRow(0, src[0], src[1], src[2], 0);
+            dest.setRow(1, src[3], src[4], src[5], 0);
+            dest.setRow(2, src[6], src[7], src[8], 0);
+            dest.setRow(3, 0f, 0f, 0f, 1f);
+        }
+        else if(src.length==16){
+            dest.setRow(0, src[0], src[1], src[2], 0);
+            dest.setRow(1, src[3], src[4], src[5], 0);
+            dest.setRow(2, src[6], src[7], src[8], 0);
+            dest.setRow(3, 0f, 0f, 0f, 1f);
+            //dest.setRow(0, src[0], src[1], src[2], src[3]);
+            //dest.setRow(1, src[4], src[5], src[6], src[7]);
+            //dest.setRow(2, src[8], src[9], src[10],src[11]);
+            //dest.setRow(3, src[12],src[13],src[14],src[15]);
+        }
     }
 
 

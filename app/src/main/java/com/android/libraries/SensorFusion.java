@@ -17,6 +17,8 @@ import java.util.TimerTask;
 /**
  * Created by Mario Salierno on 12/03/2016.
  */
+
+//http://www.codeproject.com/Articles/729759/Android-Sensor-Fusion-Tutorial
 public class SensorFusion implements SensorEventListener {
 
     //activity context
@@ -83,6 +85,7 @@ public class SensorFusion implements SensorEventListener {
     private Sensor accSensor, gyroSensor, magnSensor;
     //The initialisation of the sensor listeners happens in the initListeners() method:
     public void initListeners(){
+
         accSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         mSensorManager.registerListener(this,
                 accSensor,
@@ -111,6 +114,11 @@ public class SensorFusion implements SensorEventListener {
 
     @Override
     public void onSensorChanged(SensorEvent event) {
+
+        //if(event.accuracy< SensorManager.SENSOR_STATUS_ACCURACY_HIGH)return;
+        //if(event.accuracy< SensorManager.SENSOR_STATUS_ACCURACY_LOW)return;
+
+
         switch(event.sensor.getType()) {
             case Sensor.TYPE_ACCELEROMETER:
                 // copy new accelerometer data into accel array
@@ -435,7 +443,8 @@ public class SensorFusion implements SensorEventListener {
             int inclination = (int) Math.round(Math.toDegrees(Math.acos(rotationMatrix[8])));
 
             activity.onNewOrientationMatrixComputed(gyroMatrix);
-            activity.onNewOrientationAnglesComputed(f2f.floatValue(),f1f.floatValue(),f0f.floatValue(),inclination>90);
+
+            //activity.onNewOrientationAnglesComputed(f2f.floatValue(),f1f.floatValue(),f0f.floatValue(),inclination>90);
 
             // update sensor output GUI
             activity.showOrientationFusedAngle(f0f,f1f,f2f);

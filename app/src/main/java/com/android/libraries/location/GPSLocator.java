@@ -160,9 +160,6 @@ public class GPSLocator implements LocationListener, GeoLocator {
                 String loc = "lat:" + newLocation.getLatitude() + " long:" + newLocation.getLongitude() + " alt:" + newLocation.getAltitude();
                 location = newLocation;
                 ACCURACY_THRESHOLD=(int)newLocation.getAccuracy();
-                TextureFromCameraActivity.MainHandler mainH = activity.getMainHandler();
-                if (mainH != null)
-                    mainH.sendLocalization(loc);
                 Log.e("LOCATION UPDATED acc:"+ACCURACY_THRESHOLD, loc );
             }
         }
