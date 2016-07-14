@@ -1,6 +1,8 @@
 package com.android.libraries;
 
+/*
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
@@ -34,11 +36,50 @@ import java.util.HashMap;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
+*/
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Color;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
+import android.hardware.SensorManager;
+import android.location.Location;
+import android.opengl.GLSurfaceView;
+import android.support.v4.content.res.ResourcesCompat;
+import android.util.Log;
+
+import com.android.libraries.R;
+import com.android.libraries.jpctutils.Terrain;
+import com.android.libraries.location.LocationFusionStrategy;
+import com.threed.jpct.Camera;
+import com.threed.jpct.Config;
+import com.threed.jpct.FrameBuffer;
+import com.threed.jpct.Light;
+import com.threed.jpct.Loader;
+import com.threed.jpct.Matrix;
+import com.threed.jpct.Object3D;
+import com.threed.jpct.Primitives;
+import com.threed.jpct.RGBColor;
+import com.threed.jpct.SimpleVector;
+import com.threed.jpct.Texture;
+import com.threed.jpct.TextureManager;
+import com.threed.jpct.World;
+import com.threed.jpct.util.SkyBox;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.util.HashMap;
+
+import javax.microedition.khronos.egl.EGLConfig;
+import javax.microedition.khronos.opengles.GL10;
 
 /**
  * Created by Mario Salierno on 21/03/2016.
  */
 public class JPCTWorldManager implements GLSurfaceView.Renderer{
+
+    private final String TAG = "JPCTWorldManager";
 
     private World world = null;
     private SkyBox skybox = null;
@@ -422,7 +463,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         public int textureId;
         public float x,y,z;
         public int dimension;
-        public int scale;
+        public float scale;
         public Texture texture;
         public Object3D obj3D;
 
@@ -431,7 +472,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         public TexturedObject(String id,
                               int textureId,///*p.e R.drawable.bigoffice*/
                               //String texturePath,
-                              int scale,
+                              float scale,
                               float x,
                               float y,
                               float z,
@@ -444,27 +485,37 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
             this.y=y;
             this.z=z;
             dimension=dim;
-            obj3D = loadTexture3DSFormat(id, scale, textureId);
+            obj3D = load3DSObject(id, textureId, scale);
         }
 
 
 
+        //http://www.jpct.net/forum2/index.php/topic,2168.15.html?PHPSESSID=2963dbbdcd6472ebe013778ea71482ec
         ////txtrName for example for a named bman.3ds, it would be just bman
-        private Object3D loadTexture3DSFormat(String txtrName, int textureID/*p.e R.drawable.bigoffice*/, int thingScale /*= 1*/)
+        private Object3D load3DSObject(String txtrName, int textureID/*p.e R.drawable.bigoffice*/, float thingScale /*= 1*/)
         {
 
             //TextureManager.getInstance().addTexture(txtrName + ".jpg", new Texture("res/" + txtrName + ".jpg"));
             // Create a texture out of the icon...:-)
             //texture = new Texture(BitmapHelper.rescale(BitmapHelper.convert(activity.getResources().getDrawable(R.drawable.ic_launcher)), 64, 64));
             Log.e("TEXTUREchairID","chair:"+textureID);
-            Drawable image = ResourcesCompat.getDrawable(activity.getResources(), textureID , null);
+            //Drawable image = ResourcesCompat.getDrawable(activity.getResources(), R.drawable.bigoffice   /*textureID*/ , null);
+
             //texture = new Texture(image);
-            texture = new Texture(BitmapHelper.convert(image));
+
+            //Bitmap bmp = BitmapFactory.decodeFile( "/drawable/" );
+            Bitmap bm = BitmapFactory.decodeResource(activity.getResources(), textureID);
+            //texture = new Texture(activity.getResources().openRawResource(textureID));
+            texture = new Texture(bm);
+            //texture = new Texture(200,200);
+            //texture = new Texture(BitmapHelper.convert(image));
             TextureManager.getInstance().addTexture(txtrName, texture);
 
 
             try {
-                Object3D objT = loadModel("assets/" + txtrName + ".3ds", thingScale);
+                String fname = /*"assets/" + */txtrName+".3ds";
+                Log.e(TAG, "model file name:"+fname);
+                Object3D objT = loadModel(fname, thingScale);
                 //Primitives.getCube(10);
                 //cube.calcTextureWrapSpherical();
                 //cube.setTexture("texture");
@@ -489,11 +540,17 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
             //InputStream stream = mContext.getAssets().open("FILENAME.3DS")
             InputStream stream = null;
             try {
-                stream = activity.getApplicationContext().getAssets().open(filename+".3ds");
+                stream = activity.getApplicationContext().getAssets().open(filename);
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            Object3D[] model = Loader.load3DS(stream, scale);
+            Object3D[] model;
+            if(filename.endsWith(".3ds")){
+                model = Loader.load3DS(stream, scale);
+            }
+            else
+                return null;
+
             Object3D o3d = new Object3D(0);
             Object3D temp = null;
             for (int i = 0; i < model.length; i++) {
@@ -509,7 +566,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         }
     }
 
-    public void manageTexturedObjectCreation(TexturedObject tObj){
+    public void manageObjectCreationFromModel(TexturedObject tObj){
         Log.e("object:"+tObj.id, "CREATED at:"+tObj.x+" y:"+tObj.y+" z:"+tObj.z);
         TextureManager txtManager = TextureManager.getInstance();
         Texture txt;
@@ -523,7 +580,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
             txt = txtManager.getTexture(tObj.id);
 
 
-        txtManager.addTexture(tObj.id, txt);
+        //txtManager.addTexture(tObj.id, txt);
 
         //Object3D cube = Primitives.getCube(tObj.dimension);
         Object3D obj3D = tObj.obj3D;
@@ -544,14 +601,31 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
 
         manageObjectsCreation2();
 
-        TexturedObject tObj = new TexturedObject("wood1chair",
-                                                R.drawable.wood1chair,///*p.e R.drawable.bigoffice*/
-                                                1,
-                                                10,
-                                                10,
-                                                2,
-                                                5);
-        manageTexturedObjectCreation(tObj);
+
+        /*
+        TexturedObject tObj = new TexturedObject("chair",//id
+                                            R.drawable.chair,//p.e R.drawable.bigoffice//textureID
+                                                1f,//scale
+                                                -180,//x
+                                                -30,//y
+                                                -80,//z
+                                                1);//dim
+        */
+
+        TexturedObject tObj = new TexturedObject("chair",//id
+                R.drawable.chair,//p.e R.drawable.bigoffice//textureID
+                0.025f,//scale
+                -4,//x
+                0,//y
+                -2,//z
+                1);//dim
+
+        tObj.obj3D.rotateX((float)Math.toRadians(90.0));
+
+        //tObj.obj3D.rotateY((float)Math.toRadians(90.0));
+        //tObj.obj3D.rotateZ((float)Math.toRadians(90.0));
+        manageObjectCreationFromModel(tObj);
+
         //createCubesOnTheJPCTAxis();
         //createGroundPlane();
         /*
@@ -1098,7 +1172,6 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
 
 
 
-
     //http://stackoverflow.com/questions/14740808/android-problems-calculating-the-orientation-of-the-device
     /*
     public void onSensorChanged(SensorEvent event)
@@ -1154,6 +1227,8 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         }
 
     }
+
+
 
 
 
