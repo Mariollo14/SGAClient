@@ -31,7 +31,7 @@ public class SimParameters {
         this.addNewTarget("pirandello10",41.1292366,14.7941399, 173);
         */
         int altezzaGrattacielo = 247+166;
-        this.addNewTarget("sanpaolo", 45.069642,7.662763,altezzaGrattacielo);
+        this.addNewTarget("sanpaolo", 45.06971,7.662823,altezzaGrattacielo);
         this.addNewTarget("tobkcf",45.064171, 7.659963,250);
         //this.addNewTarget("tobkpraca",45.075859, 7.664095, 251);
         //this.addNewTarget("trueN", 89.99, 0.01, 250);

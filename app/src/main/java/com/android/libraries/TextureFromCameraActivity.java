@@ -10,6 +10,7 @@ import android.graphics.PixelFormat;
 import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
 import android.hardware.SensorListener;
+import android.location.Location;
 import android.net.wifi.WifiManager;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
@@ -20,6 +21,7 @@ import android.os.Looper;
 import android.os.Message;
 import android.provider.Settings;
 import android.util.Log;
+import android.util.Pair;
 import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.SurfaceHolder;
@@ -39,6 +41,7 @@ import com.android.libraries.location.GeoLocator;
 import com.android.libraries.location.GoogleServicesLocator;
 import com.android.libraries.location.LocationFusionStrategy;
 import com.android.libraries.location.kalman.KalmanLocator;
+import com.threed.jpct.Object3D;
 
 import java.io.IOException;
 import java.lang.ref.WeakReference;
@@ -1632,8 +1635,8 @@ public class TextureFromCameraActivity extends Activity
         if (ipAddr == null) {
             IPview.setText(getString(R.string.msg_wifi_error));
         } else {
-            Log.e("IPADDRESS:", getString(R.string.msg_access_local) + " http://" + ipAddr + ":"+StreamingPort);
-            IPview.setText(getString(R.string.msg_access_local) + " http://" + ipAddr + ":"+StreamingPort);
+            Log.e("IPADDRESS:", getString(R.string.msg_access_local) + " ws://" + ipAddr + ":"+StreamingPort);
+            IPview.setText(getString(R.string.msg_access_local) + " ws://" + ipAddr + ":"+StreamingPort);
             return true;
             //tv.setText(getString(R.string.msg_port_error));
         }
@@ -2258,12 +2261,22 @@ public class TextureFromCameraActivity extends Activity
         @Override
         public void onMessage(WebSocket conn, ByteBuffer blob) {
             Log.e("onMessage:", "bytebuffer");
+            try {
+                Location loc = locationFusion.getAsynchBestLocationAmongLocators();
+                loc.setLongitude(loc.getLongitude()+0.002);
+                Object3D o3d = Object3DManager.deserializeObject3D(blob.array());
+                jpctWorldManager.addObjectToCreationQueue(o3d,loc);
+            } catch (IOException e) {
+                e.printStackTrace();
+            } catch (ClassNotFoundException e) {
+                e.printStackTrace();
+            }
         }
 
         @Override
         public void onMessage(WebSocket conn, String message) {
 
-            Log.e("received", message);
+            Log.e("onMessage string", message);
             conn.send("I can hear you.");
 
         }

@@ -47,6 +47,7 @@ import android.location.Location;
 import android.opengl.GLSurfaceView;
 import android.support.v4.content.res.ResourcesCompat;
 import android.util.Log;
+import android.util.Pair;
 
 import com.android.libraries.R;
 import com.android.libraries.jpctutils.Terrain;
@@ -69,7 +70,9 @@ import com.threed.jpct.util.SkyBox;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
@@ -98,7 +101,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
     private final String groundID = "groundobjID";
 
 
-    private HashMap<String, TranslationObject> worldObjects = new HashMap<String, TranslationObject>();
+    //private HashMap<String, TranslationObject> worldObjects = new HashMap<String, TranslationObject>();
     RGBColor background = new RGBColor(0,0,0,0);//bigtransparent background
     private FrameBuffer frameBuffer = null;
 
@@ -132,6 +135,15 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         roll=r;
         pitch=p;
         head=h;
+
+    }
+
+
+    private ConcurrentLinkedQueue<Pair<Object3D,Location>> objectsToBeCreated = new ConcurrentLinkedQueue<Pair<Object3D,Location>>();
+
+    public void addObjectToCreationQueue(Object3D tObj, Location loc){
+
+        objectsToBeCreated.offer(new Pair<Object3D, Location>(tObj,loc));
 
     }
 
@@ -307,7 +319,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         plane.setTexture(id);
         plane.setName(id);
         world.addObject(plane);
-        worldObjects.put(id, new TranslationObject(id, plane, x,y,z));
+        //worldObjects.put(id, new TranslationObject(id, plane, x,y,z));
 
     }
     /*
@@ -451,10 +463,177 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         cube.setTexture(id);
         cube.setName(id);
         world.addObject(cube);
-        worldObjects.put(id, new TranslationObject(id, cube, x,y,z));
+        //worldObjects.put(id, new TranslationObject(id, cube, x,y,z));
 
     }
 
+    private void addObject3DToWorld(Object3D object3D,float x, float y, float z){
+        Log.e("object:"+object3D.getName(), "CREATED at:"+x+" y:"+y+" z:"+z);
+
+        /*
+        TextureManager txtManager = TextureManager.getInstance();
+        Texture txt;
+        if(!txtManager.containsTexture(id)) {
+            //txtManager.removeTexture(id);
+            if(id.equals("rosina")){
+                txt = new Texture(64,64,RGBColor.RED);
+            }
+            else if(id.equals("sanpaolo")){
+                txt = new Texture(64,64,RGBColor.RED);
+                txtManager.addTexture(id, txt);
+                int dim = 5;//(int) (500 / z);
+
+                Object3D cube = Primitives.getCube(dim);
+
+                cube.translate(x, y, z);
+                cube.rotateX((float) Math.toRadians(90.0));
+                cube.setTexture(id);
+                cube.setName(id);
+                world.addObject(cube);
+                return;
+            }
+            else if(id.equals("asobrero")){
+                txt = new Texture(64,64,new RGBColor(255, 255, 0));
+
+                txtManager.addTexture(id, txt);
+                int dim = 20;//(int) (500 / z);
+
+                Object3D cube = Primitives.getCube(dim);
+
+                cube.translate(x, y, z);
+                cube.setTexture(id);
+                cube.setName(id);
+                world.addObject(cube);
+                return;
+            }
+            else if(id.equals("pirandello")){
+                txt = new Texture(64,64,RGBColor.WHITE);
+            }
+            else if(id.equals("pirandello10")){
+                txt = new Texture(64,64,RGBColor.GREEN);
+            }
+            else if(id.equals("traiano")){
+                txt = new Texture(64,64,RGBColor.BLACK);
+            }
+            else if(id.equals("moscovio")){
+                txt = new Texture(64,64,new RGBColor(144,132,53));
+            }
+            else if(id.equals("duomo")){
+                txt = new Texture(64,64,new RGBColor(255,153,0));
+            }
+            else if(id.equals("nikila")){
+                txt = new Texture(64,64,new RGBColor(223,115,255));
+            }
+            else if(id.equals("XAXIS")){
+                txt = new Texture(64,64,new RGBColor(0,0,255));//BLU MYSPOT
+            }
+            else if(id.equals("XAXISBACK")){
+                txt = new Texture(64,64,new RGBColor(179, 179, 255));
+            }
+            else if(id.equals("YAXIS")){
+                txt = new Texture(64,64,new RGBColor(255, 0, 0));//ROSSO MLN
+            }
+            else if(id.equals("YAXISBACK")){
+                txt = new Texture(64,64,new RGBColor(255, 179, 179));
+            }
+            else if(id.equals("ZAXIS")){
+                txt = new Texture(64,64,new RGBColor(0, 255, 0));//VERDE su
+            }
+            else if(id.equals("ZAXISBACK")){
+                txt = new Texture(64,64,new RGBColor(179, 255, 179));
+            }
+
+            else
+                txt = new Texture(64,64,RGBColor.BLACK);
+
+            txtManager.addTexture(id, txt);
+        }
+        else
+            txt = txtManager.getTexture(id);
+
+
+        int dim = 1;//(int) (500 / z);
+
+        Object3D cube = Primitives.getCube(dim);
+        */
+        object3D.translate(x, y, z);
+        //cube.setTexture(id);
+        //cube.setName(id);
+        world.addObject(object3D);
+        //worldObjects.put(id, new TranslationObject(id, cube, x,y,z));
+
+    }
+
+    public void createObject3DFromLocation(Object3D obj3d, Location target){
+        world.removeAllObjects();
+
+        /*
+        zeroLoc=new Location("asobrero");
+        zeroLoc.setLatitude(45.0808178);
+        zeroLoc.setLongitude(7.6655203);
+        zeroLoc.setAltitude(245);
+        */
+        String targetID = obj3d.getName();
+
+        int attempt = 10;
+        while(zeroLoc==null && attempt>0) {
+            //zeroLoc = gpsLocator.getLocation();
+            zeroLoc=locationFusion.getAsynchBestLocationAmongLocators();
+            attempt--;
+        }
+
+        if(zeroLoc!=null) {
+            Double zeroDeltaLat = zeroLoc.getLatitude()/*-0.002*/;
+            Double zeroDeltaLng = zeroLoc.getLongitude()/*-0.002*/;
+            zeroLoc.setLatitude(zeroDeltaLat);
+            zeroLoc.setLongitude(zeroDeltaLng);
+
+
+
+
+                //p stands for ro
+                float p = zeroLoc.distanceTo(target);
+
+
+                float bearing = zeroLoc.bearingTo(target);
+                Log.e("manageObjectsCreation2", "bearing:"+bearing+" id:"+targetID);
+                float theta = X_TO_NORTH_ANGLE - bearing;// - bearingAngleOfView;
+                //Log.e("bearing", theta+" "+targetID);
+                Log.e("manageObjectsCreation2", "thetadeg:"+theta+" id:"+targetID);
+                Double thetaD = toRad((double) theta);
+                Log.e("manageObjectsCreation2", "thetarad:"+thetaD+" id:"+targetID);
+                Double z = target.getAltitude() - zeroLoc.getAltitude();
+                // z == p * Math.cos(phiD);
+                // cosPhi = z/p
+                //Log.e("handleCamPosSpherical", "z/p="+z.floatValue()+"/"+p);
+                Double cosPhi;
+                if(p>1)
+                    cosPhi = z/p;
+                else {
+                    addObject3DToWorld(obj3d, 0, 0, 0);
+                    return;
+                }
+                //Log.e("handleCamPosSpherical", "cosPhi="+cosPhi);
+                //Double phiD = toRad((double) phi);
+                Double phiD = Math.acos(cosPhi);
+
+                //double r = p * Math.sin(phiD);
+                //Log.e("isFacedown", facedown + "");
+
+                //the code would be this...
+                Double x = p * Math.sin(phiD) * Math.cos(thetaD);
+                Double y = p * Math.sin(phiD) * Math.sin(thetaD);
+
+                Log.e("manageObjectsCreation2", "x:"+x+" y:"+y+" z:"+z);
+
+                addObject3DToWorld(obj3d, x.floatValue(), y.floatValue(), z.floatValue());
+
+        }
+        else{
+            Log.e("JPCTWorldManager", "manageObjectsPositionUpdate: null location");
+        }
+
+    }
 
     //http://stackoverflow.com/questions/15298130/load-3d-models-with-jpct-ae
     public class TexturedObject{
@@ -669,8 +848,14 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         //manageGroundPositionUpdate();
         //manageObjectsPositionUpdate();
         //handleCameraPosition();
+
+
         handleCameraPositionSpherical();
         handleCameraRotations();
+
+        Pair<Object3D,Location> p = objectsToBeCreated.poll();
+        if(p!=null)
+            createObject3DFromLocation(p.first,p.second);
         //createCubesOnTheJPCTAxis();
         world.renderScene(frameBuffer);
          //the scene is drawn on the frame buffer.
@@ -1284,6 +1469,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         return myBitmap;
     }
 
+    /*
     private class TranslationObject{
         public String objID;
         public Object3D obj;
@@ -1302,5 +1488,6 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
 
 
     }
+    */
 
 }
