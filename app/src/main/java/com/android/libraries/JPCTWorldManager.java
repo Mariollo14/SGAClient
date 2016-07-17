@@ -90,7 +90,9 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
     private int CAMERA_HEIGHT = 0;//default value
     private int GROUND_ALTITUDE = -20;
     private double Y_FOV_VALUE = 0; //in degrees
-    private final int X_TO_NORTH_ANGLE = 90;
+    //private final float EMP_ANGLE_CORR = 0.0f;
+    private final float X_TO_NORTH_ANGLE = 90;//-EMP_ANGLE_CORR;
+
 
     //private World sky = null;
     private Light sun = null;
