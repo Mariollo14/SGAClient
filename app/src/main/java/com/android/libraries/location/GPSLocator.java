@@ -63,6 +63,11 @@ public class GPSLocator implements LocationListener, GeoLocator {
         Criteria criteria = new Criteria();
         criteria.setAccuracy(Criteria.ACCURACY_FINE);
         criteria.setPowerRequirement(Criteria.NO_REQUIREMENT);
+        criteria.setBearingRequired(true);
+        criteria.setBearingAccuracy(Criteria.ACCURACY_HIGH);
+        criteria.setAltitudeRequired(true);
+        criteria.setHorizontalAccuracy(Criteria.ACCURACY_HIGH);
+        criteria.setVerticalAccuracy(Criteria.NO_REQUIREMENT);
 
         locationManager.getBestProvider(criteria, true);
 

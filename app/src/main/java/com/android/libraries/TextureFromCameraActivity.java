@@ -646,6 +646,23 @@ public class TextureFromCameraActivity extends Activity
 
 
     /*
+    called by SensorFusion to provide light values to JPCTWorldManager
+    */
+    public void onNewOrientationAnglesComputed(float r, float g, float b) {
+
+        final float rv = r, gv = g, bv = b;
+
+        mGLView.queueEvent(new Runnable() {
+            @Override
+            public void run() {
+                jpctWorldManager.setRGBLight(rv, gv, bv);
+            }
+        });
+
+    }
+
+
+    /*
         Tell the render thread to update the text view showing the values of Roll, Pitch and Heading
     */
     public void showOrientationFusedAngle(double f0, double f1, double f2) {

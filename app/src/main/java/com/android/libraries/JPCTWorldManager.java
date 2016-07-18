@@ -210,8 +210,9 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         configureEnvironment();
 
         world = new World();
+        //world.setFogging(World.FOGGING_ENABLED);
+        //world.setFogParameters(500,224,224,224);
         //world.setAmbientLight(20, 20, 20);
-
 
         sun = new Light(world);
         sun.setIntensity(128, 128, 128);
@@ -219,11 +220,11 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         Camera worldCam = world.getCamera();
         worldCam.setPosition(0,0,CAMERA_HEIGHT);
 
-        //Double fov = toRad(Y_FOV_VALUE);
+        Double fov = toRad(Y_FOV_VALUE);
         //worldCam.setYFovAngle(fov.floatValue());
         //worldCam.setFovAngle(fov.floatValue());
-        //worldCam.se
         //worldCam.setFOVLimits(0.7f,1.3f);
+
 
         /*
             Two worlds because one is for the scene itself and one is for the sky dome.
@@ -302,6 +303,15 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
 
     }
 
+    public void setRGBLight(float r, float g, float b){
+
+        if(sun!=null) {
+            sun.setIntensity(r, g, b);
+            return;
+        }
+
+
+    }
 
     public void createGroundPlane(){
         String id = "groundPlaneID";
