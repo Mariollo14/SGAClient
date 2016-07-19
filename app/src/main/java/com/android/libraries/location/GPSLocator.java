@@ -165,7 +165,7 @@ public class GPSLocator implements LocationListener, GeoLocator {
                 String loc = "lat:" + newLocation.getLatitude() + " long:" + newLocation.getLongitude() + " alt:" + newLocation.getAltitude();
                 location = newLocation;
                 ACCURACY_THRESHOLD=(int)newLocation.getAccuracy();
-                Log.e("LOCATION UPDATED acc:"+ACCURACY_THRESHOLD, loc );
+                //Log.e("LOCATION UPDATED acc:"+ACCURACY_THRESHOLD, loc );
             }
         }
     }

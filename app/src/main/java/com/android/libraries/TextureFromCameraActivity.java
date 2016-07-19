@@ -104,7 +104,7 @@ import teaonly.droideye.MediaBlock;
  * </ol>
  */
 public class TextureFromCameraActivity extends Activity
-        implements SurfaceHolder.Callback/*,SeekBar.OnSeekBarChangeListener*/ {
+        implements SurfaceHolder.Callback/*, View.OnTouchListener*//*,SeekBar.OnSeekBarChangeListener*/ {
     public static final String TAG = "TextureCameraActivity";/////MainActivity.TAG;
 
 
@@ -237,6 +237,8 @@ public class TextureFromCameraActivity extends Activity
         mGLView = (GLSurfaceView) this.findViewById(R.id.glsSurfaceViewOnTopOfCamera);//new GLSurfaceView(this);
         SurfaceHolder GLSsfOnTopHolder = mGLView.getHolder();
         GLSsfOnTopHolder.setFormat(PixelFormat.TRANSLUCENT);
+
+        //mGLView.setOnTouchListener(this);
 
         if (gl2) {
             mGLView.setEGLContextClientVersion(2);
@@ -469,8 +471,17 @@ public class TextureFromCameraActivity extends Activity
     }
 
 
+    @Override
+    protected void onDestroy() {
+        Log.e(TAG, "onDestroy");
 
-    @Override   // SurfaceHolder.Callback
+        streamingServer.closeAllConnections();
+
+        super.onDestroy();
+
+    }
+
+        @Override   // SurfaceHolder.Callback
     public void surfaceCreated(SurfaceHolder holder) {
 
         if (sSurfaceHolder != null) {
@@ -561,56 +572,6 @@ public class TextureFromCameraActivity extends Activity
     public void onStopTrackingTouch(SeekBar seekBar) {}
     */
 
-    @Override
-    /**
-     * Handles any touch events that aren't grabbed by one of the controls.
-     */
-    public boolean onTouchEvent(MotionEvent e) {
-
-        //jpctWorldManager.getCameraPosition();
-
-        /*
-        if (e.getAction() == MotionEvent.ACTION_DOWN) {
-            //xpos = e.getX();
-            //ypos = e.getY();
-            return true;
-        }
-
-        if (e.getAction() == MotionEvent.ACTION_UP) {
-            //xpos = -1;
-            //ypos = -1;
-            return true;
-        }
-
-        if (e.getAction() == MotionEvent.ACTION_MOVE) {
-            return true;
-        }
-        */
-        return super.onTouchEvent(e);
-        /*
-        mario
-        float x = e.getX();
-        float y = e.getY();
-
-        switch (e.getAction()) {
-            case MotionEvent.ACTION_MOVE:
-            case MotionEvent.ACTION_DOWN:
-                //Log.v(TAG, "onTouchEvent act=" + e.getAction() + " x=" + x + " y=" + y);
-                if (mRenderThread != null) {
-                    RenderHandler rh = mRenderThread.getHandler();
-                    rh.sendPosition((int) x, (int) y);
-
-                    // Forcing a redraw can cause sluggish-looking behavior if the touch
-                    // events arrive quickly.
-                    //rh.sendRedraw();
-                }
-                break;
-            default:
-                break;
-        }
-        return true;
-        */
-    }
 
 
     /*
@@ -648,7 +609,7 @@ public class TextureFromCameraActivity extends Activity
     /*
     called by SensorFusion to provide light values to JPCTWorldManager
     */
-    public void onNewOrientationAnglesComputed(float r, float g, float b) {
+    public void onNewLightValues(float r, float g, float b) {
 
         final float rv = r, gv = g, bv = b;
 
@@ -735,6 +696,15 @@ public class TextureFromCameraActivity extends Activity
     }
 
 
+    /*
+    @Override
+    public boolean onTouch(View v, MotionEvent event) {
+        Log.e(TAG,"ontouch");
+        if(streamingServer.inStreaming)
+            streamingServer.closeAllConnections();
+        return false;
+    }
+    */
 
 
     /**
@@ -963,7 +933,7 @@ public class TextureFromCameraActivity extends Activity
 
             Looper.loop();
 
-            Log.e(TAG, "looper quit");
+            //Log.e(TAG, "looper quit");
             releaseCamera();
             releaseGl();
             mEglCore.release();
@@ -1040,9 +1010,9 @@ public class TextureFromCameraActivity extends Activity
             //onCameraReady fragment
             mCamera.stopPreview();
 
-            Log.e("PICTURE WH","w:"+PictureWidth+" H:"+PictureHeight);
+            //Log.e("PICTURE WH","w:"+PictureWidth+" H:"+PictureHeight);
             Camera.Size chosenSize = setupCamera(PictureWidth, PictureHeight, 4, 25.0, previewCb);
-            Log.e(TAG, "camW:" + chosenSize.width + " camH:" + chosenSize.height);
+            //Log.e(TAG, "camW:" + chosenSize.width + " camH:" + chosenSize.height);
 
             //nativeInitMediaEncoder(cameraView.getWidth(), cameraView.getHeight());
 
@@ -1092,7 +1062,7 @@ public class TextureFromCameraActivity extends Activity
 
             Camera.Parameters p = mCamera.getParameters();
             p.setPreviewSize(procSize_.width, procSize_.height);
-            Log.e("Preview Size set to:", "w:" + procSize_.width + " h:" + procSize_.height);
+            //Log.e("Preview Size set to:", "w:" + procSize_.width + " h:" + procSize_.height);
             p.setPreviewFormat(ImageFormat.NV21);
             //p.setPreviewFormat(ImageFormat.YV12);//YUV - N21
 
@@ -1102,9 +1072,9 @@ public class TextureFromCameraActivity extends Activity
             //
             int previewFormat=p.getPreviewFormat();
             int bitsperpixel=ImageFormat.getBitsPerPixel(previewFormat);
-            Log.e(TAG, "bits per pixel = "+bitsperpixel);
+            //Log.e(TAG, "bits per pixel = "+bitsperpixel);
             double byteperpixel=(double) bitsperpixel/8;
-            Log.e(TAG, "bytes per pixel = "+byteperpixel);
+            //Log.e(TAG, "bytes per pixel = "+byteperpixel);
             Camera.Size camerasize=p.getPreviewSize();
             int bufSize= (int) Math.ceil(((camerasize.width*camerasize.height)*byteperpixel));
 
@@ -1113,15 +1083,6 @@ public class TextureFromCameraActivity extends Activity
             //PixelFormat.getPixelFormatInfo(ImageFormat.NV21, pixelFormat);
             //PixelFormat.getPixelFormatInfo(ImageFormat.YV12, pixelFormat); //YUV - N21
 
-            /*
-            Log.println(Log.ASSERT,"BITSPERPIXEL=", ""+pixelFormat.bitsPerPixel);
-            Log.e("BITSPERPIXEL=", ""+pixelFormat.bitsPerPixel);
-            Log.d("BITSPERPIXEL=", ""+pixelFormat.bitsPerPixel);
-            Log.i("BITSPERPIXEL=", ""+pixelFormat.bitsPerPixel);
-            Log.v("BITSPERPIXEL=", ""+pixelFormat.bitsPerPixel);
-            Log.w("BITSPERPIXEL=", ""+pixelFormat.bitsPerPixel);
-            Log.wtf("BITSPERPIXEL=", ""+pixelFormat.bitsPerPixel);
-            */
 
             //calculate bufsize for YV12 ImageFormat
 
@@ -1709,23 +1670,14 @@ public class TextureFromCameraActivity extends Activity
 
     private void doStreaming3() {
         //synchronized (TextureFromCameraActivity.this) {
-        long newtmill = System.currentTimeMillis();
-        long mill = newtmill - tmill;
-        tmill = newtmill;
-        Log.e("Thread run interval:", ""+mill+" queue size:"+frameToBeEncodedQueue.size());
+        //long newtmill = System.currentTimeMillis();
+        //long mill = newtmill - tmill;
+        //tmill = newtmill;
+        //Log.e("Thread run interval:", ""+mill+" queue size:"+frameToBeEncodedQueue.size());
         //}
-
-        //Log.e(TAG,"doStreaming");
-            /*
-            long newtmill= System.currentTimeMillis();
-            long mill = newtmill - tmill;
-            tmill=newtmill;
-            Log.e("Thread run interval:", ""+mill);
-            */
 
         MediaBlock targetBlock = frameToBeSent.poll();
         if (targetBlock == null) {
-            //Log.e(TAG, "M48, null mediablock, thread yield");
             return;
         } else if (targetBlock != null)
             //if(targetBlock.millis<lastBlockSentTimeInMillis)return;
@@ -1988,7 +1940,7 @@ public class TextureFromCameraActivity extends Activity
         public void run() {
             //Log.e(TAG,"VIDEOENCODINGTASK");
 
-            Log.e("VIDEOENCODINGTASK", "queue size:"+frameToBeEncodedQueue.size());
+            //Log.e("VIDEOENCODINGTASK", "queue size:"+frameToBeEncodedQueue.size());
 
             byte [] toBeEncoded = frameToBeEncodedQueue.poll();
 
@@ -2057,7 +2009,7 @@ public class TextureFromCameraActivity extends Activity
                             //LENTO
 
                     streamingHandler.sendMessage(streamMex);
-                    Log.e("VIDEOENCODER","end");
+                    //Log.e("VIDEOENCODER","end");
 
                 }
             }
@@ -2096,9 +2048,6 @@ public class TextureFromCameraActivity extends Activity
             }
             int millis = (int) (System.currentTimeMillis() % 65535);
             int ret = nativeDoVideoEncode(yuvFrame, resultNal, intraFlag);
-
-
-            Log.e(TAG,"Encoding ret:"+ret);
 
             if (ret <= 0) {
                 return;
@@ -2208,6 +2157,21 @@ public class TextureFromCameraActivity extends Activity
         }
 
 
+        public void closeAllConnections(){
+
+            Log.e(TAG, "closeAllConnections");
+            for(WebSocket cli : clients) {
+
+                if (cli.isOpen()) {
+                    Log.e(TAG,"closing client:"+cli.getRemoteSocketAddress().toString());
+                    cli.close();
+                }
+                else
+                    Log.e(TAG,"already closed client:"+cli.getRemoteSocketAddress().toString());
+            }
+
+        }
+
         private long INTERVAL = System.currentTimeMillis();
 
         public boolean sendMedia(byte[] data, int length) {
@@ -2224,7 +2188,8 @@ public class TextureFromCameraActivity extends Activity
 
 
                 for(WebSocket wCli : clients){
-                  wCli.send(buf);
+                    if(wCli.isOpen())
+                        wCli.send(buf);
                 }
                 //mediaSocket.send(buf);
                 ret = true;
@@ -2277,6 +2242,7 @@ public class TextureFromCameraActivity extends Activity
                 //if(wCli.getRemoteSocketAddress().toString().equalsIgnoreCase(conn.getRemoteSocketAddress().toString())){
                 if(wCli == conn){
                     clients.remove(wCli);
+                    if(clients.size()<1)inStreaming=false;
                     return;
                 }
             }
@@ -2296,6 +2262,7 @@ public class TextureFromCameraActivity extends Activity
                 //if(wCli.getRemoteSocketAddress().toString().equalsIgnoreCase(conn.getRemoteSocketAddress().toString())){
                 if(wCli == conn){
                     clients.remove(wCli);
+                    if(clients.size()<1)inStreaming=false;
                     return;
                 }
             }
@@ -2320,7 +2287,7 @@ public class TextureFromCameraActivity extends Activity
         public void onMessage(WebSocket conn, String message) {
 
             Log.e("onMessage string", message);
-            conn.send("I can hear you.");
+            //conn.send("I can hear you.");
 
         }
 

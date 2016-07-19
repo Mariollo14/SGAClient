@@ -149,7 +149,7 @@ public class Object3DManager {
             //TextureManager.getInstance().addTexture(txtrName + ".jpg", new Texture("res/" + txtrName + ".jpg"));
             // Create a texture out of the icon...:-)
             //texture = new Texture(BitmapHelper.rescale(BitmapHelper.convert(activity.getResources().getDrawable(R.drawable.ic_launcher)), 64, 64));
-            Log.e("TEXTUREchairID","chair:"+textureID);
+            //Log.e("TEXTUREchairID","chair:"+textureID);
             //Drawable image = ResourcesCompat.getDrawable(activity.getResources(), R.drawable.bigoffice   /*textureID*/ , null);
 
             //texture = new Texture(image);
@@ -165,7 +165,7 @@ public class Object3DManager {
 
             try {
                 String fname = /*"assets/" + */txtrName+".3ds";
-                Log.e(TAG, "model file name:"+fname);
+                //Log.e(TAG, "model file name:"+fname);
                 Object3D objT = loadModel(fname, thingScale);
                 //Primitives.getCube(10);
                 //cube.calcTextureWrapSpherical();
@@ -218,7 +218,7 @@ public class Object3DManager {
     }
 
     public void manageObjectCreationFromModel(TexturedObject tObj){
-        Log.e("object:"+tObj.id, "CREATED at:"+tObj.x+" y:"+tObj.y+" z:"+tObj.z);
+        //Log.e("object:"+tObj.id, "CREATED at:"+tObj.x+" y:"+tObj.y+" z:"+tObj.z);
         TextureManager txtManager = TextureManager.getInstance();
         Texture txt;
         if(!txtManager.containsTexture(tObj.id)) {

@@ -381,12 +381,12 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         ground.setName(groundID);
         world.addObject(ground);
         groundTransformedCenter = ground.getTransformedCenter();
-        Log.e("createGround", "ground created");
+        //Log.e("createGround", "ground created");
 
     }
 
     public void createPrimitiveCube(String id, float x, float y, float z){
-        Log.e("object:"+id, "CREATED at:"+x+" y:"+y+" z:"+z);
+        //Log.e("object:"+id, "CREATED at:"+x+" y:"+y+" z:"+z);
         TextureManager txtManager = TextureManager.getInstance();
         Texture txt;
         if(!txtManager.containsTexture(id)) {
@@ -608,12 +608,12 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
 
 
                 float bearing = zeroLoc.bearingTo(target);
-                Log.e("manageObjectsCreation2", "bearing:"+bearing+" id:"+targetID);
+                //Log.e("manageObjectsCreation2", "bearing:"+bearing+" id:"+targetID);
                 float theta = X_TO_NORTH_ANGLE - bearing;// - bearingAngleOfView;
                 //Log.e("bearing", theta+" "+targetID);
-                Log.e("manageObjectsCreation2", "thetadeg:"+theta+" id:"+targetID);
+                //Log.e("manageObjectsCreation2", "thetadeg:"+theta+" id:"+targetID);
                 Double thetaD = toRad((double) theta);
-                Log.e("manageObjectsCreation2", "thetarad:"+thetaD+" id:"+targetID);
+                //Log.e("manageObjectsCreation2", "thetarad:"+thetaD+" id:"+targetID);
                 Double z = target.getAltitude() - zeroLoc.getAltitude();
                 // z == p * Math.cos(phiD);
                 // cosPhi = z/p
@@ -636,7 +636,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
                 Double x = p * Math.sin(phiD) * Math.cos(thetaD);
                 Double y = p * Math.sin(phiD) * Math.sin(thetaD);
 
-                Log.e("manageObjectsCreation2", "x:"+x+" y:"+y+" z:"+z);
+                //Log.e("manageObjectsCreation2", "x:"+x+" y:"+y+" z:"+z);
 
                 addObject3DToWorld(obj3d, x.floatValue(), y.floatValue(), z.floatValue());
 
@@ -689,7 +689,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
             //TextureManager.getInstance().addTexture(txtrName + ".jpg", new Texture("res/" + txtrName + ".jpg"));
             // Create a texture out of the icon...:-)
             //texture = new Texture(BitmapHelper.rescale(BitmapHelper.convert(activity.getResources().getDrawable(R.drawable.ic_launcher)), 64, 64));
-            Log.e("TEXTUREchairID","chair:"+textureID);
+            //Log.e("TEXTUREchairID","chair:"+textureID);
             //Drawable image = ResourcesCompat.getDrawable(activity.getResources(), R.drawable.bigoffice   /*textureID*/ , null);
 
             //texture = new Texture(image);
@@ -705,7 +705,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
 
             try {
                 String fname = /*"assets/" + */txtrName+".3ds";
-                Log.e(TAG, "model file name:"+fname);
+                //Log.e(TAG, "model file name:"+fname);
                 Object3D objT = loadModel(fname, thingScale);
                 //Primitives.getCube(10);
                 //cube.calcTextureWrapSpherical();
@@ -758,7 +758,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
     }
 
     public void manageObjectCreationFromModel(TexturedObject tObj){
-        Log.e("object:"+tObj.id, "CREATED at:"+tObj.x+" y:"+tObj.y+" z:"+tObj.z);
+        //Log.e("object:"+tObj.id, "CREATED at:"+tObj.x+" y:"+tObj.y+" z:"+tObj.z);
         TextureManager txtManager = TextureManager.getInstance();
         Texture txt;
         if(!txtManager.containsTexture(tObj.id)) {
@@ -790,7 +790,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
 
         setUpWorld();
 
-        manageObjectsCreation2();
+        manageObjectsCreation();
 
 
         /*
@@ -920,7 +920,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
 
 
     //http://tutorial.math.lamar.edu/Classes/CalcIII/SphericalCoords.aspx
-    public void manageObjectsCreation2(){
+    public void manageObjectsCreation(){
 
         world.removeAllObjects();
 
@@ -947,7 +947,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
             zeroLoc.setLongitude(zeroDeltaLng);
 
             //Log.e("CAMERA POS", "x:"+xCAMERA+" y:"+yCAMERA+" z:"+zCAMERA);
-            Log.e("ZEROLOC","altitude:"+zeroLoc.getAltitude());
+            //Log.e("ZEROLOC","altitude:"+zeroLoc.getAltitude());
             //locationFusion.smoothAltitudeValueThroughService(zeroLoc);
             for (String targetID : simulation.getTargetLocations().keySet()) {
                 Location target = simulation.getTargetLocations().get(targetID);
@@ -961,12 +961,12 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
                 //Log.e("bearingAngleOfView",bearingAngleOfView+"");
 
                 float bearing = zeroLoc.bearingTo(target);
-                Log.e("manageObjectsCreation2", "bearing:"+bearing+" id:"+targetID);
+                //Log.e("manageObjectsCreation2", "bearing:"+bearing+" id:"+targetID);
                 float theta = X_TO_NORTH_ANGLE - bearing;// - bearingAngleOfView;
                 //Log.e("bearing", theta+" "+targetID);
-                Log.e("manageObjectsCreation2", "thetadeg:"+theta+" id:"+targetID);
+                //Log.e("manageObjectsCreation2", "thetadeg:"+theta+" id:"+targetID);
                 Double thetaD = toRad((double) theta);
-                Log.e("manageObjectsCreation2", "thetarad:"+thetaD+" id:"+targetID);
+                //Log.e("manageObjectsCreation2", "thetarad:"+thetaD+" id:"+targetID);
                 Double z = target.getAltitude() - zeroLoc.getAltitude();
                 // z == p * Math.cos(phiD);
                 // cosPhi = z/p
@@ -989,7 +989,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
                 Double x = p * Math.sin(phiD) * Math.cos(thetaD);
                 Double y = p * Math.sin(phiD) * Math.sin(thetaD);
 
-                Log.e("manageObjectsCreation2", "x:"+x+" y:"+y+" z:"+z);
+                //Log.e("manageObjectsCreation2", "x:"+x+" y:"+y+" z:"+z);
 
                 createPrimitiveCube(targetID, x.floatValue(), y.floatValue(), z.floatValue());
             }
@@ -1008,6 +1008,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
     */
     //distanza sull'asse
     //http://tutorial.math.lamar.edu/Classes/CalcIII/SphericalCoords.aspx
+    /*
     public void manageObjectsCreation(){
 
         world.removeAllObjects();
@@ -1057,6 +1058,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         }
 
     }
+    */
 
 
 
@@ -1448,18 +1450,6 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         }
     }
 
-
-    int axis = 2;
-    public void getCameraPosition(){
-
-
-
-
-        SimpleVector s = world.getCamera().getUpVector();
-        Log.e("JPCT:getUpVector", "x:"+s.x+" y:"+s.y+" z:"+s.z);
-
-        //axis++;
-    }
 
 
     // Convert transparentColor to be transparent in a Bitmap.
