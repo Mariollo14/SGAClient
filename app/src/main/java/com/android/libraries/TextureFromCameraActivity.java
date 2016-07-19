@@ -2196,6 +2196,7 @@ public class TextureFromCameraActivity extends Activity
     //EYE
     private class StreamingServer extends WebSocketServer {
 
+        private ArrayList<WebSocket> clients = new ArrayList<WebSocket>();
         private WebSocket mediaSocket = null;
         public boolean inStreaming = false;
         //private final int MediaBlockSize = 1024 * 512;
@@ -2221,7 +2222,11 @@ public class TextureFromCameraActivity extends Activity
 
             if (inStreaming == true) {
 
-                mediaSocket.send(buf);
+
+                for(WebSocket wCli : clients){
+                  wCli.send(buf);
+                }
+                //mediaSocket.send(buf);
                 ret = true;
 
                 /*
@@ -2249,11 +2254,12 @@ public class TextureFromCameraActivity extends Activity
                 mediaSocket = conn;//mario
                 inStreaming = true;
                 */
-                conn.close();
+                //conn.close();
             } else {
                 Log.e("onOpen:", conn.getRemoteSocketAddress().toString());
                 resetMediaBuffer();
-                mediaSocket = conn;
+                //mediaSocket = conn;
+                clients.add(conn);
                 inStreaming = true;
             }
         }
@@ -2261,17 +2267,37 @@ public class TextureFromCameraActivity extends Activity
         @Override
         public void onClose(WebSocket conn, int code, String reason, boolean remote) {
             Log.e("onClose:", conn.getRemoteSocketAddress().toString());
+            /*
             if (conn == mediaSocket) {
                 inStreaming = false;
                 mediaSocket = null;
+            }
+            */
+            for(WebSocket wCli: clients){
+                //if(wCli.getRemoteSocketAddress().toString().equalsIgnoreCase(conn.getRemoteSocketAddress().toString())){
+                if(wCli == conn){
+                    clients.remove(wCli);
+                    return;
+                }
             }
         }
 
         @Override
         public void onError(WebSocket conn, Exception ex) {
+
+            /*
             if (conn == mediaSocket) {
                 inStreaming = false;
                 mediaSocket = null;
+            }
+            */
+
+            for(WebSocket wCli: clients){
+                //if(wCli.getRemoteSocketAddress().toString().equalsIgnoreCase(conn.getRemoteSocketAddress().toString())){
+                if(wCli == conn){
+                    clients.remove(wCli);
+                    return;
+                }
             }
         }
 
