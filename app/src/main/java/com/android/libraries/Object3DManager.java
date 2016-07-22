@@ -27,7 +27,7 @@ import java.io.UnsupportedEncodingException;
 public class Object3DManager {
 
     private Activity activity;
-    private String TAG = "Object3DManager";
+    private static String TAG = "Object3DManager";
 
 
     public Object3DManager(Activity act){
@@ -37,6 +37,7 @@ public class Object3DManager {
     }
 
 
+    /*
     public Object3D createObject3D(){
         TexturedObject tObj = new TexturedObject("chair",//id
                 R.drawable.chair,//p.e R.drawable.bigoffice//textureID
@@ -55,6 +56,7 @@ public class Object3DManager {
         return tObj.obj3D;
 
     }
+    */
 
     public static byte[] serializeObject3D(Object3D obj3d) throws IOException {
 
@@ -103,6 +105,7 @@ public class Object3DManager {
 
         Object3D obj3d = (Object3D) input.readObject();
 
+        Log.e(TAG, "object3d DESERIALIZED");
         return obj3d;
 
     }

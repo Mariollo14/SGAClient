@@ -71,7 +71,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import javax.microedition.khronos.egl.EGLConfig;
@@ -89,6 +92,15 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
     private int SKYBOX_DIM = 8192;//1024;
     private int CAMERA_HEIGHT = 0;//default value
     private int GROUND_ALTITUDE = -20;
+
+    private boolean dynamicLineOfSightEnabled = true;
+    private Timer timerLoS;
+    private int TIMER_CONSTANT = 200;
+    private int LINE_OF_SIGHT = Integer.MAX_VALUE;
+    private int FOG_LINE = LINE_OF_SIGHT;
+    private RGBColor fogColor = new RGBColor(224,224,224);
+
+
     private double Y_FOV_VALUE = 0; //in degrees
     //private final float EMP_ANGLE_CORR = 0.0f;
     private final float X_TO_NORTH_ANGLE = 90;//-EMP_ANGLE_CORR;
@@ -161,6 +173,11 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         if(CAMERA_HEIGHT!=null)
             this.CAMERA_HEIGHT=CAMERA_HEIGHT;
 
+        if(dynamicLineOfSightEnabled){
+            timerLoS = new Timer();
+            timerLoS.scheduleAtFixedRate(new LineOfSightTask(),
+                    1000, TIMER_CONSTANT);
+        }
 
     }
 
@@ -210,8 +227,9 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         configureEnvironment();
 
         world = new World();
-        //world.setFogging(World.FOGGING_ENABLED);
-        //world.setFogParameters(500,224,224,224);
+
+        world.setFogging(World.FOGGING_ENABLED);
+        world.setFogParameters(FOG_LINE,fogColor.getRed(),fogColor.getGreen(),fogColor.getBlue());
         //world.setAmbientLight(20, 20, 20);
 
         sun = new Light(world);
@@ -482,94 +500,10 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
     private void addObject3DToWorld(Object3D object3D,float x, float y, float z){
         Log.e("object:"+object3D.getName(), "CREATED at:"+x+" y:"+y+" z:"+z);
 
-        /*
-        TextureManager txtManager = TextureManager.getInstance();
-        Texture txt;
-        if(!txtManager.containsTexture(id)) {
-            //txtManager.removeTexture(id);
-            if(id.equals("rosina")){
-                txt = new Texture(64,64,RGBColor.RED);
-            }
-            else if(id.equals("sanpaolo")){
-                txt = new Texture(64,64,RGBColor.RED);
-                txtManager.addTexture(id, txt);
-                int dim = 5;//(int) (500 / z);
-
-                Object3D cube = Primitives.getCube(dim);
-
-                cube.translate(x, y, z);
-                cube.rotateX((float) Math.toRadians(90.0));
-                cube.setTexture(id);
-                cube.setName(id);
-                world.addObject(cube);
-                return;
-            }
-            else if(id.equals("asobrero")){
-                txt = new Texture(64,64,new RGBColor(255, 255, 0));
-
-                txtManager.addTexture(id, txt);
-                int dim = 20;//(int) (500 / z);
-
-                Object3D cube = Primitives.getCube(dim);
-
-                cube.translate(x, y, z);
-                cube.setTexture(id);
-                cube.setName(id);
-                world.addObject(cube);
-                return;
-            }
-            else if(id.equals("pirandello")){
-                txt = new Texture(64,64,RGBColor.WHITE);
-            }
-            else if(id.equals("pirandello10")){
-                txt = new Texture(64,64,RGBColor.GREEN);
-            }
-            else if(id.equals("traiano")){
-                txt = new Texture(64,64,RGBColor.BLACK);
-            }
-            else if(id.equals("moscovio")){
-                txt = new Texture(64,64,new RGBColor(144,132,53));
-            }
-            else if(id.equals("duomo")){
-                txt = new Texture(64,64,new RGBColor(255,153,0));
-            }
-            else if(id.equals("nikila")){
-                txt = new Texture(64,64,new RGBColor(223,115,255));
-            }
-            else if(id.equals("XAXIS")){
-                txt = new Texture(64,64,new RGBColor(0,0,255));//BLU MYSPOT
-            }
-            else if(id.equals("XAXISBACK")){
-                txt = new Texture(64,64,new RGBColor(179, 179, 255));
-            }
-            else if(id.equals("YAXIS")){
-                txt = new Texture(64,64,new RGBColor(255, 0, 0));//ROSSO MLN
-            }
-            else if(id.equals("YAXISBACK")){
-                txt = new Texture(64,64,new RGBColor(255, 179, 179));
-            }
-            else if(id.equals("ZAXIS")){
-                txt = new Texture(64,64,new RGBColor(0, 255, 0));//VERDE su
-            }
-            else if(id.equals("ZAXISBACK")){
-                txt = new Texture(64,64,new RGBColor(179, 255, 179));
-            }
-
-            else
-                txt = new Texture(64,64,RGBColor.BLACK);
-
-            txtManager.addTexture(id, txt);
-        }
-        else
-            txt = txtManager.getTexture(id);
-
-
-        int dim = 1;//(int) (500 / z);
-
-        Object3D cube = Primitives.getCube(dim);
-        */
         object3D.translate(x, y, z);
-        //cube.setTexture(id);
+        //TextureManager txtManager = TextureManager.getInstance();
+        //Texture txt = txtManager.getTexture(object3D.getName());
+        object3D.setTexture(object3D.getName());
         //cube.setName(id);
         world.addObject(object3D);
         //worldObjects.put(id, new TranslationObject(id, cube, x,y,z));
@@ -577,7 +511,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
     }
 
     public void createObject3DFromLocation(Object3D obj3d, Location target){
-        world.removeAllObjects();
+        //world.removeAllObjects();
 
         /*
         zeroLoc=new Location("asobrero");
@@ -585,6 +519,13 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         zeroLoc.setLongitude(7.6655203);
         zeroLoc.setAltitude(245);
         */
+        if(target==null){
+            SimpleVector camPos = world.getCamera().getPosition();
+            Log.e(TAG,"creating object3d at "+ camPos.x+1 +" "+ camPos.y+1 +" "+ camPos.z);
+            addObject3DToWorld(obj3d, camPos.x+1, camPos.y+1, camPos.z);
+            return;
+        }
+
         String targetID = obj3d.getName();
 
         int attempt = 10;
@@ -599,9 +540,6 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
             Double zeroDeltaLng = zeroLoc.getLongitude()/*-0.002*/;
             zeroLoc.setLatitude(zeroDeltaLat);
             zeroLoc.setLongitude(zeroDeltaLng);
-
-
-
 
                 //p stands for ro
                 float p = zeroLoc.distanceTo(target);
@@ -792,17 +730,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
 
         manageObjectsCreation();
 
-
         /*
-        TexturedObject tObj = new TexturedObject("chair",//id
-                                            R.drawable.chair,//p.e R.drawable.bigoffice//textureID
-                                                1f,//scale
-                                                -180,//x
-                                                -30,//y
-                                                -80,//z
-                                                1);//dim
-        */
-
         TexturedObject tObj = new TexturedObject("chair",//id
                 R.drawable.chair,//p.e R.drawable.bigoffice//textureID
                 0.025f,//scale
@@ -816,6 +744,8 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         //tObj.obj3D.rotateY((float)Math.toRadians(90.0));
         //tObj.obj3D.rotateZ((float)Math.toRadians(90.0));
         manageObjectCreationFromModel(tObj);
+        */
+
 
         //createCubesOnTheJPCTAxis();
         //createGroundPlane();
@@ -866,9 +796,13 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         handleCameraRotations();
 
         Pair<Object3D,Location> p = objectsToBeCreated.poll();
-        if(p!=null)
-            createObject3DFromLocation(p.first,p.second);
+        if(p!=null) {
+
+            createObject3DFromLocation(p.first, null/*p.second*/);
+        }
         //createCubesOnTheJPCTAxis();
+
+
         world.renderScene(frameBuffer);
          //the scene is drawn on the frame buffer.
         if(skybox!=null)
@@ -1469,6 +1403,29 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
 
         myBitmap.setPixels(allpixels, 0, myBitmap.getWidth(), 0, 0, myBitmap.getWidth(), myBitmap.getHeight());
         return myBitmap;
+    }
+
+    private class LineOfSightTask extends TimerTask {
+        @Override
+        public void run() {
+
+            Enumeration<Object3D> obj3Ds = world.getObjects();
+            SimpleVector camPos = world.getCamera().getPosition();
+            Log.e(TAG, "obj3Ds has more elements:"+obj3Ds.hasMoreElements());
+            while(obj3Ds.hasMoreElements()){
+                Object3D tO = obj3Ds.nextElement();
+                double distance = tO.getCenter().distance(camPos);
+                if(distance>LINE_OF_SIGHT){
+                    Log.e(TAG,tO.getName()+" visibility:false");
+                    tO.setVisibility(false);
+                }
+                else{
+                    Log.e(TAG,tO.getName()+" visibility:true");
+                    tO.setVisibility(true);
+                }
+            }
+
+        }
     }
 
     /*

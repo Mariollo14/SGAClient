@@ -5,6 +5,8 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.ImageFormat;
 import android.graphics.PixelFormat;
 import android.graphics.SurfaceTexture;
@@ -42,6 +44,8 @@ import com.android.libraries.location.GoogleServicesLocator;
 import com.android.libraries.location.LocationFusionStrategy;
 import com.android.libraries.location.kalman.KalmanLocator;
 import com.threed.jpct.Object3D;
+import com.threed.jpct.Texture;
+import com.threed.jpct.TextureManager;
 
 import java.io.IOException;
 import java.lang.ref.WeakReference;
@@ -63,6 +67,8 @@ import android.hardware.Camera.PreviewCallback;
 import org.java_websocket.WebSocket;
 import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.server.WebSocketServer;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import javax.microedition.khronos.egl.EGL10;
 import javax.microedition.khronos.egl.EGLConfig;
@@ -2271,22 +2277,28 @@ public class TextureFromCameraActivity extends Activity
         @Override
         public void onMessage(WebSocket conn, ByteBuffer blob) {
             Log.e("onMessage:", "bytebuffer");
+            /*
             try {
-                Location loc = locationFusion.getAsynchBestLocationAmongLocators();
-                loc.setLongitude(loc.getLongitude()+0.002);
+                //Location loc = locationFusion.getAsynchBestLocationAmongLocators();
+                //loc.setLongitude(loc.getLongitude()+0.00002);
                 Object3D o3d = Object3DManager.deserializeObject3D(blob.array());
-                jpctWorldManager.addObjectToCreationQueue(o3d,loc);
+                jpctWorldManager.addObjectToCreationQueue(o3d,null);
             } catch (IOException e) {
                 e.printStackTrace();
             } catch (ClassNotFoundException e) {
                 e.printStackTrace();
             }
+            */
         }
 
         @Override
         public void onMessage(WebSocket conn, String message) {
 
-            Log.e("onMessage string", message);
+            Log.e("onMessage string", "json");
+
+            new Object3DCreatorThread(message,jpctWorldManager,null).start();
+
+
             //conn.send("I can hear you.");
 
         }
