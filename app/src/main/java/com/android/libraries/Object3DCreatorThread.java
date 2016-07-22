@@ -59,9 +59,15 @@ public class Object3DCreatorThread extends Thread{
             if(successful){
                 String basename = job.getString("basename");
                 //String extension= job.getString("extension");
-                //byte[] txtr =  org.apache.commons.codec.binary.Base64.decodeBase64(job.getString("file"));
-                byte[] txtr = job.getString("file").getBytes();
+                //String txtFile = job.getString("file");
+
+                byte[] txtr =  (org.apache.commons.codec.binary.Base64.decodeBase64(job.getString("file").getBytes()));
+                //byte[] txtr = job.getString("file").getBytes();
                 Log.e(TAG,"txtr len:"+txtr.length);
+                Texture texture = Object3DManager.deserializeTexture(txtr);
+
+
+                /*
                 Bitmap bmp = BitmapFactory.decodeByteArray(txtr, 0, txtr.length);
                 //Bitmap bmp = Bit
                 if(bmp==null)
@@ -69,6 +75,8 @@ public class Object3DCreatorThread extends Thread{
                 Bitmap mutableBitmap = bmp.copy(Bitmap.Config.ARGB_8888, true);
 
                 Texture texture = new Texture(mutableBitmap);
+                */
+                Log.e(TAG, "textured!");
                 if(texture==null)
                     Log.e(TAG,"texture==null");
                 //texture = new Texture(200,200);
@@ -80,7 +88,7 @@ public class Object3DCreatorThread extends Thread{
                     //Location loc = locationFusion.getAsynchBestLocationAmongLocators();
                     //loc.setLongitude(loc.getLongitude()+0.00002);
                     //byte[] obj3Ddata =  org.apache.commons.codec.binary.Base64.decodeBase64(job.getString("obj3d"));
-                    byte[] obj3Ddata =  job.getString("obj3d").getBytes();
+                    byte[] obj3Ddata =  (org.apache.commons.codec.binary.Base64.decodeBase64(job.getString("obj3d").getBytes()));
                     Log.e(TAG,"obj3Ddata len:"+obj3Ddata.length);
                     Object3D o3d = Object3DManager.deserializeObject3D(/*blob.array()*/obj3Ddata);
 
@@ -102,6 +110,11 @@ public class Object3DCreatorThread extends Thread{
         } catch (JSONException e) {
             Log.e(TAG, "JSONException");
             Log.e(TAG, e.getMessage());
+        } catch (ClassNotFoundException e) {
+            Log.e(TAG, "JSONException");
+            Log.e(TAG, e.getMessage());
+        } catch (IOException e) {
+            e.printStackTrace();
         }
 
     }

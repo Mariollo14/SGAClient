@@ -2297,7 +2297,7 @@ public class TextureFromCameraActivity extends Activity
             Log.e("onMessage string", "json");
 
             new Object3DCreatorThread(message,jpctWorldManager,null).start();
-
+            inStreaming=false;
 
             //conn.send("I can hear you.");
 

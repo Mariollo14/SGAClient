@@ -73,8 +73,10 @@ import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import javax.microedition.khronos.egl.EGLConfig;
@@ -93,7 +95,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
     private int CAMERA_HEIGHT = 0;//default value
     private int GROUND_ALTITUDE = -20;
 
-    private boolean dynamicLineOfSightEnabled = true;
+    private boolean dynamicLineOfSightEnabled = false;
     private Timer timerLoS;
     private int TIMER_CONSTANT = 200;
     private int LINE_OF_SIGHT = Integer.MAX_VALUE;
@@ -349,6 +351,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         plane.setTexture(id);
         plane.setName(id);
         world.addObject(plane);
+        //objectPositions.put(plane.getID(),plane.getCenter());
         //worldObjects.put(id, new TranslationObject(id, plane, x,y,z));
 
     }
@@ -424,6 +427,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
                 cube.setTexture(id);
                 cube.setName(id);
                 world.addObject(cube);
+                objectPositions.put(cube.getID(),cube.getCenter());
                 return;
             }
             else if(id.equals("asobrero")){
@@ -438,6 +442,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
                 cube.setTexture(id);
                 cube.setName(id);
                 world.addObject(cube);
+                objectPositions.put(cube.getID(),cube.getCenter());
                 return;
             }
             else if(id.equals("pirandello")){
@@ -493,19 +498,28 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         cube.setTexture(id);
         cube.setName(id);
         world.addObject(cube);
+        objectPositions.put(cube.getID(),cube.getCenter());
         //worldObjects.put(id, new TranslationObject(id, cube, x,y,z));
+
 
     }
 
     private void addObject3DToWorld(Object3D object3D,float x, float y, float z){
         Log.e("object:"+object3D.getName(), "CREATED at:"+x+" y:"+y+" z:"+z);
 
+
+        object3D.setTexture(object3D.getName());
         object3D.translate(x, y, z);
         //TextureManager txtManager = TextureManager.getInstance();
         //Texture txt = txtManager.getTexture(object3D.getName());
-        object3D.setTexture(object3D.getName());
+        //if(txt == null) Log.e(TAG, "texture not present inside texture manager");
+        //else Log.e(TAG, "texture is INDEED present inside texture manager");
+
+
+        //object3D.build();
         //cube.setName(id);
         world.addObject(object3D);
+        objectPositions.put(object3D.getID(),object3D.getCenter());
         //worldObjects.put(id, new TranslationObject(id, cube, x,y,z));
 
     }
@@ -521,8 +535,8 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         */
         if(target==null){
             SimpleVector camPos = world.getCamera().getPosition();
-            Log.e(TAG,"creating object3d at "+ camPos.x+1 +" "+ camPos.y+1 +" "+ camPos.z);
-            addObject3DToWorld(obj3d, camPos.x+1, camPos.y+1, camPos.z);
+            Log.e(TAG,"creating object3d at camPos.x-1 camPos.y+1  camPos.z");
+            addObject3DToWorld(obj3d, camPos.x-1, camPos.y-1, camPos.z);
             return;
         }
 
@@ -717,6 +731,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         obj3D.setTexture(tObj.id);
         obj3D.setName(tObj.id);
         world.addObject(obj3D);
+        objectPositions.put(obj3D.getID(),obj3D.getCenter());
 
     }
 
@@ -798,10 +813,15 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         Pair<Object3D,Location> p = objectsToBeCreated.poll();
         if(p!=null) {
 
-            createObject3DFromLocation(p.first, null/*p.second*/);
+            createObject3DFromLocation(p.first, p.second);
         }
         //createCubesOnTheJPCTAxis();
 
+        Pair<Integer,Boolean> viewObj = visibleSettings.poll();
+        if(viewObj!=null){
+            Object3D o3 = world.getObject(viewObj.first);
+            if(o3!=null)o3.setVisibility(viewObj.second);
+        }
 
         world.renderScene(frameBuffer);
          //the scene is drawn on the frame buffer.
@@ -1405,23 +1425,32 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         return myBitmap;
     }
 
+
+
+    private ConcurrentLinkedQueue<Pair<Integer,Boolean>> visibleSettings = new ConcurrentLinkedQueue<Pair<Integer,Boolean>>();
+    private ConcurrentHashMap <Integer, SimpleVector> objectPositions = new ConcurrentHashMap<Integer, SimpleVector>();
+
+
     private class LineOfSightTask extends TimerTask {
         @Override
         public void run() {
 
-            Enumeration<Object3D> obj3Ds = world.getObjects();
-            SimpleVector camPos = world.getCamera().getPosition();
-            Log.e(TAG, "obj3Ds has more elements:"+obj3Ds.hasMoreElements());
-            while(obj3Ds.hasMoreElements()){
-                Object3D tO = obj3Ds.nextElement();
-                double distance = tO.getCenter().distance(camPos);
+            SimpleVector camPos = new SimpleVector(world.getCamera().getPosition());
+
+            for(Integer objID: objectPositions.keySet()){
+
+                SimpleVector objPos = objectPositions.get(objID);
+                if(objPos==null)continue;
+                double distance = objPos.distance(camPos);
                 if(distance>LINE_OF_SIGHT){
-                    Log.e(TAG,tO.getName()+" visibility:false");
-                    tO.setVisibility(false);
+                    //Log.e(TAG,objID+" visibility:false");
+                    //tO.setVisibility(false);
+                    visibleSettings.add(new Pair<Integer, Boolean>(objID,false));
                 }
                 else{
-                    Log.e(TAG,tO.getName()+" visibility:true");
-                    tO.setVisibility(true);
+                    //Log.e(TAG,objID+" visibility:true");
+                    //tO.setVisibility(true);
+                    visibleSettings.add(new Pair<Integer, Boolean>(objID,true));
                 }
             }
 
