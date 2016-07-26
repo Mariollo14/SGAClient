@@ -22,14 +22,14 @@ public class Object3DCreatorThread extends Thread {
 
     private String TAG = "Object3DCreatorThread";
 
-    private String message;
+    private JSONObject job;
     private JPCTWorldManager jpctWorldManager;
     private Location loc;
 
 
-    public Object3DCreatorThread(String message, JPCTWorldManager jpctWorldManager, Location loc) {
+    public Object3DCreatorThread(JSONObject job, JPCTWorldManager jpctWorldManager, Location loc) {
 
-        this.message = message;
+        this.job=job;
         this.jpctWorldManager = jpctWorldManager;
         this.loc = loc;
 
@@ -41,12 +41,12 @@ public class Object3DCreatorThread extends Thread {
 
         try {
             Log.e(TAG, "run()");
-            Log.e(TAG, "message len:" + message.length());
-            Log.e(TAG, message.substring(0, 20));
+            //Log.e(TAG, "message len:" + message.length());
+            //Log.e(TAG, message.substring(0, 20));
             //Log.e(TAG, message.substring(20,40));
             //Log.e(TAG, message.substring(40,60));
             //Log.e(TAG, message.substring(1398155,1398170));
-            JSONObject job = new JSONObject(message);
+            //job = new JSONObject(message);
 
             //Boolean successful = job.getBoolean("successful");
             Boolean successful = (Boolean) job.get("successful");
