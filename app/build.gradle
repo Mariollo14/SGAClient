@@ -53,4 +53,6 @@ dependencies {
     compile 'org.json:json:20160212'
     //compile 'commons-codec:commons-codec:1.5'
     //compile files('libs/json-lib-2.4-jdk15.jar')
+    compile 'com.neovisionaries:nv-websocket-client:1.29'
+
 }

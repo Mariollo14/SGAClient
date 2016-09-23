@@ -43,6 +43,10 @@ import com.android.libraries.location.GeoLocator;
 import com.android.libraries.location.GoogleServicesLocator;
 import com.android.libraries.location.LocationFusionStrategy;
 import com.android.libraries.location.kalman.KalmanLocator;
+import com.neovisionaries.ws.client.WebSocketException;
+import com.neovisionaries.ws.client.WebSocketFrame;
+import com.neovisionaries.ws.client.WebSocketListener;
+import com.neovisionaries.ws.client.WebSocketState;
 import com.threed.jpct.Object3D;
 import com.threed.jpct.Texture;
 import com.threed.jpct.TextureManager;
@@ -57,6 +61,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -2026,7 +2031,6 @@ public class TextureFromCameraActivity extends Activity
 
 
 
-
     //EYE
     private class VideoEncodingTask implements Runnable {
 
@@ -2147,6 +2151,9 @@ public class TextureFromCameraActivity extends Activity
             mediaReadIndex = 0;
         }
     }
+
+
+
 
     //EYE
     private class StreamingServer extends WebSocketServer {
@@ -2321,5 +2328,263 @@ public class TextureFromCameraActivity extends Activity
 
 
 
+
+    /*
+
+    private class StreamingServer2 implements WebSocketListener{
+
+
+        private ArrayList<WebSocket> clients = new ArrayList<WebSocket>();
+        private WebSocket mediaSocket = null;
+        public boolean inStreaming = false;
+        //private final int MediaBlockSize = 1024 * 512;
+        ByteBuffer buf = ByteBuffer.allocate(MediaBlockSize);
+
+        public StreamingServer(int port) throws UnknownHostException {
+            //super(new InetSocketAddress(port));
+            m
+
+        }
+
+
+        public void closeAllConnections(){
+
+            Log.e(TAG, "closeAllConnections");
+            for(WebSocket cli : clients) {
+
+                if (cli.isOpen()) {
+                    Log.e(TAG,"closing client:"+cli.getRemoteSocketAddress().toString());
+                    cli.close();
+                }
+                else
+                    Log.e(TAG,"already closed client:"+cli.getRemoteSocketAddress().toString());
+            }
+
+        }
+
+        private long INTERVAL = System.currentTimeMillis();
+
+        public boolean sendMedia(byte[] data, int length) {
+            //Log.e(TAG, "sendMedia() ");
+            boolean ret = false;
+
+            if (inStreaming == true) {
+                buf.clear();
+                buf.put(data, 0, length);
+                buf.flip();
+            }
+
+            if (inStreaming == true) {
+
+
+                for(WebSocket wCli : clients){
+                    if(wCli.isOpen())
+                        wCli.send(buf);
+                }
+                //mediaSocket.send(buf);
+                ret = true;
+
+            }
+
+            return ret;
+        }
+
+        @Override
+        public void onStateChanged(com.neovisionaries.ws.client.WebSocket websocket, WebSocketState newState) throws Exception {
+
+        }
+
+        @Override
+        public void onConnected(com.neovisionaries.ws.client.WebSocket conn, Map<String, List<String>> headers) throws Exception {
+            Log.e("onOpen:", " instreaming=" + inStreaming);
+
+
+            if (inStreaming == true) {
+
+                //inStreaming = false;//mario
+                //mediaSocket.close();//mario
+                //mediaSocket = conn;//mario
+                //inStreaming = true;
+
+                //conn.close();
+            } else {
+                Log.e("onOpen:", conn.getRemoteSocketAddress().toString());
+                resetMediaBuffer();
+                //mediaSocket = conn;
+                clients.add(conn);
+                inStreaming = true;
+            }
+        }
+
+        @Override
+        public void onConnectError(com.neovisionaries.ws.client.WebSocket websocket, WebSocketException cause) throws Exception {
+            for(WebSocket wCli: clients){
+                //if(wCli.getRemoteSocketAddress().toString().equalsIgnoreCase(conn.getRemoteSocketAddress().toString())){
+                if(wCli == conn){
+                    clients.remove(wCli);
+                    if(clients.size()<1)inStreaming=false;
+                    return;
+                }
+            }
+        }
+
+        @Override
+        public void onDisconnected(com.neovisionaries.ws.client.WebSocket websocket, WebSocketFrame serverCloseFrame, WebSocketFrame clientCloseFrame, boolean closedByServer) throws Exception {
+
+        }
+
+        @Override
+        public void onFrame(com.neovisionaries.ws.client.WebSocket websocket, WebSocketFrame frame) throws Exception {
+
+        }
+
+        @Override
+        public void onContinuationFrame(com.neovisionaries.ws.client.WebSocket websocket, WebSocketFrame frame) throws Exception {
+
+        }
+
+        @Override
+        public void onTextFrame(com.neovisionaries.ws.client.WebSocket websocket, WebSocketFrame frame) throws Exception {
+
+        }
+
+        @Override
+        public void onBinaryFrame(com.neovisionaries.ws.client.WebSocket websocket, WebSocketFrame frame) throws Exception {
+
+        }
+
+        @Override
+        public void onCloseFrame(com.neovisionaries.ws.client.WebSocket conn, WebSocketFrame frame) throws Exception {
+
+            Log.e("onClose:", conn.getRemoteSocketAddress().toString());
+            for(WebSocket wCli: clients){
+                //if(wCli.getRemoteSocketAddress().toString().equalsIgnoreCase(conn.getRemoteSocketAddress().toString())){
+                if(wCli == conn){
+                    clients.remove(wCli);
+                    if(clients.size()<1)inStreaming=false;
+                    return;
+                }
+            }
+        }
+
+        @Override
+        public void onPingFrame(com.neovisionaries.ws.client.WebSocket websocket, WebSocketFrame frame) throws Exception {
+
+        }
+
+        @Override
+        public void onPongFrame(com.neovisionaries.ws.client.WebSocket websocket, WebSocketFrame frame) throws Exception {
+
+        }
+
+        @Override
+        public void onTextMessage(com.neovisionaries.ws.client.WebSocket websocket, String message) throws Exception {
+
+            Log.e("onMessage string", "json");
+
+            try {
+                JSONObject job = new JSONObject(message);
+                String type = job.getString("type");
+                switch (type){
+
+                    case "txtobj":
+                        new Object3DCreatorThread(job,jpctWorldManager,null).start();
+                        //inStreaming=false;
+                        break;
+
+                }
+
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+
+
+            //conn.send("I can hear you.");
+
+        }
+
+        @Override
+        public void onBinaryMessage(com.neovisionaries.ws.client.WebSocket websocket, byte[] binary) throws Exception {
+            Log.e("onMessage:", "bytebuffer");
+        }
+
+        @Override
+        public void onSendingFrame(com.neovisionaries.ws.client.WebSocket websocket, WebSocketFrame frame) throws Exception {
+
+        }
+
+        @Override
+        public void onFrameSent(com.neovisionaries.ws.client.WebSocket websocket, WebSocketFrame frame) throws Exception {
+
+        }
+
+        @Override
+        public void onFrameUnsent(com.neovisionaries.ws.client.WebSocket websocket, WebSocketFrame frame) throws Exception {
+
+        }
+
+        @Override
+        public void onError(com.neovisionaries.ws.client.WebSocket websocket, WebSocketException cause) throws Exception {
+
+            for(WebSocket wCli: clients){
+                //if(wCli.getRemoteSocketAddress().toString().equalsIgnoreCase(conn.getRemoteSocketAddress().toString())){
+                if(wCli == conn){
+                    clients.remove(wCli);
+                    if(clients.size()<1)inStreaming=false;
+                    return;
+                }
+            }
+
+        }
+
+        @Override
+        public void onFrameError(com.neovisionaries.ws.client.WebSocket websocket, WebSocketException cause, WebSocketFrame frame) throws Exception {
+
+        }
+
+        @Override
+        public void onMessageError(com.neovisionaries.ws.client.WebSocket websocket, WebSocketException cause, List<WebSocketFrame> frames) throws Exception {
+
+        }
+
+        @Override
+        public void onMessageDecompressionError(com.neovisionaries.ws.client.WebSocket websocket, WebSocketException cause, byte[] compressed) throws Exception {
+
+        }
+
+        @Override
+        public void onTextMessageError(com.neovisionaries.ws.client.WebSocket websocket, WebSocketException cause, byte[] data) throws Exception {
+
+        }
+
+        @Override
+        public void onSendError(com.neovisionaries.ws.client.WebSocket websocket, WebSocketException cause, WebSocketFrame frame) throws Exception {
+
+        }
+
+        @Override
+        public void onUnexpectedError(com.neovisionaries.ws.client.WebSocket websocket, WebSocketException cause) throws Exception {
+
+            for(WebSocket wCli: clients){
+                //if(wCli.getRemoteSocketAddress().toString().equalsIgnoreCase(conn.getRemoteSocketAddress().toString())){
+                if(wCli == conn){
+                    clients.remove(wCli);
+                    if(clients.size()<1)inStreaming=false;
+                    return;
+                }
+            }
+        }
+
+        @Override
+        public void handleCallbackError(com.neovisionaries.ws.client.WebSocket websocket, Throwable cause) throws Exception {
+
+        }
+
+        @Override
+        public void onSendingHandshake(com.neovisionaries.ws.client.WebSocket websocket, String requestLine, List<String[]> headers) throws Exception {
+
+        }
+    }
+    */
 
 }
