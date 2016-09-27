@@ -1316,7 +1316,7 @@ public class TextureFromCameraActivity extends Activity
 
             Camera.CameraInfo info = new Camera.CameraInfo();
 
-            // Try to find a front-facing camera (e.g. for videoconferencing).
+            // Try to find a back-facing camera
             int numCameras = Camera.getNumberOfCameras();
             for (int i = 0; i < numCameras; i++) {
                 Camera.getCameraInfo(i, info);
@@ -1326,8 +1326,8 @@ public class TextureFromCameraActivity extends Activity
                 }
             }
             if (mCamera == null) {
-                Log.d(TAG, "No front-facing camera found; opening default");
-                mCamera = Camera.open();    // opens first back-facing camera
+                Log.d(TAG, "No back-facing camera found; opening the front one");
+                mCamera = Camera.open();    // opens first camera available
             }
             if (mCamera == null) {
                 throw new RuntimeException("Unable to open camera");
