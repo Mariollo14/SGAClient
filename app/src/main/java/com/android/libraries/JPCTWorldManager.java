@@ -1386,6 +1386,10 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
 
 
     private void copyMatrix(float[] src, com.threed.jpct.Matrix dest) {
+        //per info vedi
+        //https://developer.android.com/reference/android/hardware/SensorManager.html#getQuaternionFromVector(float[], float[])
+        //getRotationMatrixFromVector
+
         if(src.length==9) {
             dest.setRow(0, src[0], src[1], src[2], 0);
             dest.setRow(1, src[3], src[4], src[5], 0);
