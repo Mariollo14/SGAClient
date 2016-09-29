@@ -1,4 +1,4 @@
-package com.android.libraries;
+package com.msali.AR.sga;
 
 /*
 import android.graphics.Bitmap;
@@ -12,8 +12,8 @@ import android.opengl.GLSurfaceView;
 import android.support.v4.content.res.ResourcesCompat;
 import android.util.Log;
 
-import com.android.libraries.jpctutils.Terrain;
-import com.android.libraries.location.LocationFusionStrategy;
+import com.android.com.msali.android.AR.com.msali.android.sga.jpctutils.Terrain;
+import com.android.com.msali.android.AR.com.msali.android.sga.location.LocationFusionStrategy;
 import com.threed.jpct.Camera;
 import com.threed.jpct.Config;
 import com.threed.jpct.*;
@@ -49,9 +49,10 @@ import android.support.v4.content.res.ResourcesCompat;
 import android.util.Log;
 import android.util.Pair;
 
-import com.android.libraries.R;
-import com.android.libraries.jpctutils.Terrain;
-import com.android.libraries.location.LocationFusionStrategy;
+import com.android.libraries.TextureFromCameraActivity;
+import com.android.sga.R;
+import com.msali.AR.sga.jpctutils.Terrain;
+import com.msali.AR.sga.location.LocationFusionStrategy;
 import com.threed.jpct.Camera;
 import com.threed.jpct.Config;
 import com.threed.jpct.FrameBuffer;
@@ -70,10 +71,6 @@ import com.threed.jpct.util.SkyBox;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;

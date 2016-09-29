@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.libraries.gles;
+package com.msali.AR.sga.gles;
 
 /**
  * Off-screen EGL surface (pbuffer).

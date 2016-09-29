@@ -14,10 +14,12 @@
  * limitations under the License.
  */
 
-package com.android.libraries;
+package com.msali.AR.sga;
 
 import android.hardware.Camera;
 import android.util.Log;
+
+import com.android.libraries.TextureFromCameraActivity;
 
 import java.util.List;
 

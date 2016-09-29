@@ -1,4 +1,4 @@
-package com.android.libraries;
+package com.msali.AR.sga;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -12,7 +12,6 @@ import com.threed.jpct.TextureManager;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
 /**

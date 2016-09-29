@@ -1,16 +1,9 @@
-package com.android.libraries;
+package com.msali.AR.sga;
 
 import android.app.Activity;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.util.Log;
 
-import com.threed.jpct.Loader;
-import com.threed.jpct.Matrix;
 import com.threed.jpct.Object3D;
-import com.threed.jpct.SimpleVector;
 import com.threed.jpct.Texture;
-import com.threed.jpct.TextureManager;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -19,9 +12,6 @@ import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
-import java.util.StringTokenizer;
 
 /**
  * Created by Mario Salierno on 15/07/2016.

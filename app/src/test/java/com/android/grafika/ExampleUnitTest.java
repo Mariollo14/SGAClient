@@ -1,4 +1,4 @@
-package com.android.libraries;
+package com.android.sga;
 
 import org.junit.Test;
 

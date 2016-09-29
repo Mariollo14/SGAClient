@@ -13,9 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.android.libraries;
+package com.msali.AR.sga;
 
-import com.android.libraries.gles.Drawable2d;
+import com.android.libraries.TextureFromCameraActivity;
+import com.msali.AR.sga.gles.Drawable2d;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;

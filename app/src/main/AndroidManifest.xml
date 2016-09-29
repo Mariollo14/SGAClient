@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.android.libraries"
+    package="com.android.sga"
     android:versionCode="33"
     android:versionName="1.0">
 
@@ -37,7 +37,7 @@
 
 
         <activity
-            android:name=".StartActivity"
+            android:name="com.android.libraries.StartActivity"
             android:label="@string/app_name"
             android:theme="@style/AppTheme.NoActionBar">
             <intent-filter>
@@ -49,7 +49,7 @@
 
         <!-- android:theme="@android:style/Theme.DeviceDefault.Light.NoActionBar" > -->
         <activity
-            android:name=".TextureFromCameraActivity"
+            android:name="com.android.libraries.TextureFromCameraActivity"
             android:label="@string/app_name"
             android:screenOrientation="landscape">
         </activity>

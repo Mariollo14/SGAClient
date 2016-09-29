@@ -1,9 +1,7 @@
-package com.android.libraries;
+package com.msali.AR.sga;
 
 import android.location.Location;
-import android.util.Log;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 

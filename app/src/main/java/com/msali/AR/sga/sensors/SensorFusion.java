@@ -1,16 +1,13 @@
-package com.android.libraries;
+package com.msali.AR.sga.sensors;
 
-import android.app.Activity;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
-import android.opengl.GLSurfaceView;
 
-import com.threed.jpct.Matrix;
+import com.android.libraries.TextureFromCameraActivity;
 
 import java.text.DecimalFormat;
-import java.util.Date;
 import java.util.Timer;
 import java.util.TimerTask;
 

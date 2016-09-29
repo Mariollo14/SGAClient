@@ -1,4 +1,4 @@
-package com.android.libraries;
+package com.android.sga;
 
 import android.app.Application;
 import android.test.ApplicationTestCase;
