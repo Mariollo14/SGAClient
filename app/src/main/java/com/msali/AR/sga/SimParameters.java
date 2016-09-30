@@ -11,6 +11,8 @@ import java.util.Map;
 //http://www.coordinate-gps.it/
 public class SimParameters {
 
+
+    private String TAG = "SimParameters";
     private Map<String,Location> targetLocations = new HashMap<String,Location>();
 
     public SimParameters(){
