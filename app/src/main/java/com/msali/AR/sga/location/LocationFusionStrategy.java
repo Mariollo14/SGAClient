@@ -4,6 +4,7 @@ import android.location.Location;
 import android.os.AsyncTask;
 
 import com.android.libraries.TextureFromCameraActivity;
+import com.msali.AR.sga.location.filters.JKalmanFilter;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -30,8 +31,10 @@ public class LocationFusionStrategy {
     public LocationFusionStrategy(TextureFromCameraActivity activity){
 
         this.activity=activity;
-        filters.add(new KalmanLatLongFilter());
-        filters.add(new WeightedMovingAverageFilter());
+
+        filters.add(new JKalmanFilter());
+        //filters.add(new KalmanLatLongFilter());
+        //filters.add(new WeightedMovingAverageFilter());
 
     }
 
