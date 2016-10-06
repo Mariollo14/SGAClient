@@ -136,10 +136,12 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
     y -> down to the screen
     z -> inside the screen
 
-    mAzimuthView heading -> Z JPCT
-    mPitchView -> x JPCT
-    mRollView -> y JPCT
+    mAzimuthView heading -> rot around Z JPCT
+    mPitchView -> rot around x JPCT
+    mRollView -> rot around y JPCT
     */
+    private boolean landscape=true;
+    private float[] rotationMatrix = null;
     private float roll=0,pitch=0,head=0;
     private boolean facedown = false;
 
@@ -1124,7 +1126,6 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
                 //Log.e("CAMERA POSITION", "x:"+x+" y:"+y+" z:"+z);
 
 
-                if(true/*x.floatValue()-xCAMERA>=1 || y.floatValue()-yCAMERA>=1 || z.floatValue()-zCAMERA>=1*/) {
 
                     xCAMERA = x.floatValue();
                     yCAMERA = y.floatValue();
@@ -1154,7 +1155,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
                         mainH.sendVirtualCoordinates(vcoors);
                     }
 
-                }
+
             //Log.e("handleCamPosSpherical", "cam pos:  "+x.floatValue()+" "+y.floatValue()+" "+z.floatValue() );
                 //createPrimitiveCube(targetID, x.floatValue(), y.floatValue(), z.floatValue());
 
@@ -1313,15 +1314,6 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
 
 
 
-    private boolean landscape=true;
-    private float[] rotationMatrix = null;
-    public void setRotationMatrix(float[] mat){
-        rotationMatrix=mat;
-    }
-
-
-
-
     //http://stackoverflow.com/questions/14740808/android-problems-calculating-the-orientation-of-the-device
     /*
     public void onSensorChanged(SensorEvent event)
@@ -1405,6 +1397,9 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         }
     }
 
+    public void setRotationMatrix(float[] mat){
+        rotationMatrix=mat;
+    }
 
 
     // Convert transparentColor to be transparent in a Bitmap.
