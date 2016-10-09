@@ -1,6 +1,10 @@
 package com.msali.AR.sga;
 
+import android.app.Activity;
 import android.location.Location;
+
+import com.android.libraries.TextureFromCameraActivity;
+import com.android.sga.R;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -13,9 +17,42 @@ public class SimParameters {
 
 
     private String TAG = "SimParameters";
-    private Map<String,Location> targetLocations = new HashMap<String,Location>();
+    private Map<String, Location> targetLocations = new HashMap<String, Location>();
+    private Map<String, SimObject> targetObjects = new HashMap<String, SimObject>();
 
-    public SimParameters(){
+    /*
+    modelName including the extension p.e. chair.3ds
+    textureId p.e R.drawable.chair
+    float scale
+    int dimension in metres
+    loc = location
+    */
+    public class SimObject {
+
+        public String modelName;
+        public int textureId;
+        public float scale;
+        public int dim;
+        public Location loc;
+
+        public SimObject(String modelName,
+                         int textureId,///*p.e R.drawable.bigoffice*/
+                         float scale,
+                         int dim,
+                         Location loc) {
+
+            this.modelName = modelName;
+            this.textureId = textureId;
+            this.scale = scale;
+            this.dim = dim;
+            this.loc = loc;
+
+        }
+
+    }
+
+    public SimParameters() {
+
 
         //test
         //this.addNewTarget("asobrero",45.0808178,7.6655203, 245);
@@ -30,9 +67,20 @@ public class SimParameters {
         this.addNewTarget("nikila",41.131527,14.780288,141);
         this.addNewTarget("pirandello10",41.1292366,14.7941399, 173);
         */
-        int altezzaGrattacielo = 247+166;
-        this.addNewTarget("sanpaolo", 45.06971,7.662823,altezzaGrattacielo);
-        this.addNewTarget("tobkcf",45.064171, 7.659963,250);
+        int altezzaGrattacielo = 247 + 166;
+        this.addNewTargetCube("sanpaolo", 45.06971, 7.662823, altezzaGrattacielo);
+        this.addNewTargetCube("tobkcf", 45.064171, 7.659963, 250);
+
+
+        Location locObj = new Location(TAG);
+        locObj.setLatitude(45.081035);
+        locObj.setLongitude(7.665644);
+        locObj.setAltitude(245);
+        this.addNewTargetObject("chsobrero", "chair.3ds",
+                R.drawable.chair,
+                0.025f,//scale
+                1,
+                locObj);
         //this.addNewTarget("tobkpraca",45.075859, 7.664095, 251);
         //this.addNewTarget("trueN", 89.99, 0.01, 250);
         /*
@@ -67,20 +115,40 @@ public class SimParameters {
 
     }
 
-    public void addNewTarget(String id, double lat, double lon, double alt){
-        Location loc = new Location(id);
+    public void addNewTargetCube(String id, double lat, double lon, double alt) {
+        Location loc = new Location(TAG);
         loc.setLatitude(lat);
         loc.setLongitude(lon);
         loc.setAltitude(alt);
-        targetLocations.put(id,loc);
+        targetLocations.put(id, loc);
     }
 
-    public Map<String,Location> getTargetLocations() {
+
+    public void addNewTargetObject(String id, SimObject sObj) {
+
+        this.targetObjects.put(id, sObj);
+    }
+
+    public void addNewTargetObject(String id, String modelName,
+                                   int textureId,///*p.e R.drawable.bigoffice*/
+                                   float scale,
+                                   int dim,
+                                   Location loc) {
+
+        this.targetObjects.put(id, new SimObject(modelName, textureId, scale, dim, loc));
+
+    }
+
+    public Map<String, Location> getTargetLocations() {
 
         return targetLocations;
 
     }
 
+    public Map<String, SimObject> getTargetObjects() {
 
+        return targetObjects;
+
+    }
 
 }

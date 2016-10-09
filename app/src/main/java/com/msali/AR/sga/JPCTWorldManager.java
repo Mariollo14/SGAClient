@@ -37,6 +37,7 @@ import java.util.HashMap;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 */
+
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
@@ -51,6 +52,7 @@ import android.util.Pair;
 
 import com.android.libraries.TextureFromCameraActivity;
 import com.android.sga.R;
+import com.msali.AR.sga.jpctutils.ModelObject3D;
 import com.msali.AR.sga.jpctutils.Terrain;
 import com.msali.AR.sga.location.LocationFusionStrategy;
 import com.threed.jpct.Camera;
@@ -82,7 +84,7 @@ import javax.microedition.khronos.opengles.GL10;
 /**
  * Created by Mario Salierno on 21/03/2016.
  */
-public class JPCTWorldManager implements GLSurfaceView.Renderer{
+public class JPCTWorldManager implements GLSurfaceView.Renderer {
 
     private final String TAG = "JPCTWorldManager";
 
@@ -97,7 +99,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
     private int TIMER_CONSTANT = 200;
     private int LINE_OF_SIGHT = Integer.MAX_VALUE;
     private int FOG_LINE = LINE_OF_SIGHT;
-    private RGBColor fogColor = new RGBColor(224,224,224);
+    private RGBColor fogColor = new RGBColor(224, 224, 224);
 
 
     private double Y_FOV_VALUE = 0; //in degrees
@@ -115,7 +117,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
 
 
     //private HashMap<String, TranslationObject> worldObjects = new HashMap<String, TranslationObject>();
-    RGBColor background = new RGBColor(0,0,0,0);//bigtransparent background
+    RGBColor background = new RGBColor(0, 0, 0, 0);//bigtransparent background
     private FrameBuffer frameBuffer = null;
 
     //boolean to set whether gles2 is available..?
@@ -127,8 +129,8 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
     LocationFusionStrategy locationFusion;
     //Location lastLocation;
     //Location myLoc;
-    Location zeroLoc=null;
-    private float xCAMERA=0, yCAMERA=0, zCAMERA=0;
+    Location zeroLoc = null;
+    private float xCAMERA = 0, yCAMERA = 0, zCAMERA = 0;
     /*
     JPCT COORDINATES
     positive axis:
@@ -140,25 +142,25 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
     mPitchView -> rot around x JPCT
     mRollView -> rot around y JPCT
     */
-    private boolean landscape=true;
+    private boolean landscape = true;
     private float[] rotationMatrix = null;
-    private float roll=0,pitch=0,head=0;
+    private float roll = 0, pitch = 0, head = 0;
     private boolean facedown = false;
 
-    public void setRPHCam(float r,float p,float h,boolean fdown){
-        facedown=fdown;
-        roll=r;
-        pitch=p;
-        head=h;
+    public void setRPHCam(float r, float p, float h, boolean fdown) {
+        facedown = fdown;
+        roll = r;
+        pitch = p;
+        head = h;
 
     }
 
 
-    private ConcurrentLinkedQueue<Pair<Object3D,Location>> objectsToBeCreated = new ConcurrentLinkedQueue<Pair<Object3D,Location>>();
+    private ConcurrentLinkedQueue<Pair<Object3D, Location>> objectsToBeCreated = new ConcurrentLinkedQueue<Pair<Object3D, Location>>();
 
-    public void addObjectToCreationQueue(Object3D tObj, Location loc){
+    public void addObjectToCreationQueue(Object3D tObj, Location loc) {
 
-        objectsToBeCreated.offer(new Pair<Object3D, Location>(tObj,loc));
+        objectsToBeCreated.offer(new Pair<Object3D, Location>(tObj, loc));
 
     }
 
@@ -168,13 +170,13 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
                             Integer CAMERA_HEIGHT) {
 
         this.activity = activity;
-        this.simulation=simulation;
-        this.locationFusion=locationFusion;
+        this.simulation = simulation;
+        this.locationFusion = locationFusion;
 
-        if(CAMERA_HEIGHT!=null)
-            this.CAMERA_HEIGHT=CAMERA_HEIGHT;
+        if (CAMERA_HEIGHT != null)
+            this.CAMERA_HEIGHT = CAMERA_HEIGHT;
 
-        if(dynamicLineOfSightEnabled){
+        if (dynamicLineOfSightEnabled) {
             timerLoS = new Timer();
             timerLoS.scheduleAtFixedRate(new LineOfSightTask(),
                     1000, TIMER_CONSTANT);
@@ -183,7 +185,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
     }
 
 
-    private void configureEnvironment(){
+    private void configureEnvironment() {
 
         /*
         The first two lines (glAvoid... and maxPolys...) are mainly to save some memory.
@@ -207,7 +209,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         but it can lead to peaks in memory usage. Default is false.
         Config.reuseTextureBuffers=true;
         */
-        Config.reuseTextureBuffers=true;
+        Config.reuseTextureBuffers = true;
 
         /*
         collideOffset is needed to make the Collision detection work with the plane.
@@ -223,21 +225,21 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
 
     }
 
-    public void setUpWorld(){
+    public void setUpWorld() {
 
         configureEnvironment();
 
         world = new World();
 
         world.setFogging(World.FOGGING_ENABLED);
-        world.setFogParameters(FOG_LINE,fogColor.getRed(),fogColor.getGreen(),fogColor.getBlue());
+        world.setFogParameters(FOG_LINE, fogColor.getRed(), fogColor.getGreen(), fogColor.getBlue());
         //world.setAmbientLight(20, 20, 20);
 
         sun = new Light(world);
         sun.setIntensity(128, 128, 128);
         //sun.setIntensity(255, 255, 255);
         Camera worldCam = world.getCamera();
-        worldCam.setPosition(0,0,CAMERA_HEIGHT);
+        worldCam.setPosition(0, 0, CAMERA_HEIGHT);
 
         Double fov = toRad(Y_FOV_VALUE);
         //worldCam.setYFovAngle(fov.floatValue());
@@ -260,8 +262,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
     }
 
 
-
-    private void setUpSkyBox(){
+    private void setUpSkyBox() {
         //TO FIX vedi classe BitmapHelper jpct
         String textureID = "groundTexture";
 
@@ -269,7 +270,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         //Drawable groundImage = activity.getResources().getDrawable(R.drawable.bigoffice);
         Drawable groundImage = ResourcesCompat.getDrawable(activity.getResources(), R.drawable.bigoffice, null);
         Texture groundTexture = new Texture(groundImage);
-        txtManager.addTexture(textureID,groundTexture);
+        txtManager.addTexture(textureID, groundTexture);
 
 
         String transparentID = "transparentback";
@@ -290,7 +291,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
 
         Texture transpTexture = new Texture(transpImage);//new Texture(1024,1024, RGBColor.BLACK);
 
-        txtManager.addTexture(transparentID,transpTexture);
+        txtManager.addTexture(transparentID, transpTexture);
 
         //TextureManager.getInstance().addTexture("panda", new Texture(getBitmapFromAssetsARGB8888(256,256,"gfx/alpha.png", AppContext), true);
 
@@ -305,8 +306,8 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         //skybox.setCenter(world.getCamera().getPosition());
         SimpleVector skyBoxPos = new SimpleVector(world.getCamera().getPosition());
         //SimpleVector skyBoxPos = world.getCamera().getPosition();
-        skyBoxPos.x=skyBoxPos.x+SKYBOX_DIM/2;
-        skyBoxPos.y=skyBoxPos.y+SKYBOX_DIM/2;
+        skyBoxPos.x = skyBoxPos.x + SKYBOX_DIM / 2;
+        skyBoxPos.y = skyBoxPos.y + SKYBOX_DIM / 2;
         //skyBoxPos.z-=100;
         //skyBoxPos.z=skyBoxPos.z+SKYBOX_DIM/2-80;
         skybox.setCenter(skyBoxPos);
@@ -314,17 +315,17 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
 
     }
 
-    public void setUpFrameBuffer(int width, int height){
+    public void setUpFrameBuffer(int width, int height) {
 
-        if(frameBuffer!=null)frameBuffer.dispose();
+        if (frameBuffer != null) frameBuffer.dispose();
 
-        frameBuffer=new FrameBuffer(width, height);
+        frameBuffer = new FrameBuffer(width, height);
 
     }
 
-    public void setRGBLight(float r, float g, float b){
+    public void setRGBLight(float r, float g, float b) {
 
-        if(sun!=null) {
+        if (sun != null) {
             sun.setIntensity(r, g, b);
             return;
         }
@@ -332,18 +333,18 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
 
     }
 
-    public void createGroundPlane(){
+    public void createGroundPlane() {
         String id = "groundPlaneID";
-        float x = 0, y=0, z=0;
-        Log.e("ground:"+id, "CREATED at:"+x+" y:"+y+" z:"+z);
+        float x = 0, y = 0, z = 0;
+        Log.e("ground:" + id, "CREATED at:" + x + " y:" + y + " z:" + z);
         TextureManager txtManager = TextureManager.getInstance();
-        Texture txt = new Texture(128,128, RGBColor.BLACK);
+        Texture txt = new Texture(128, 128, RGBColor.BLACK);
         txtManager.addTexture(id, txt);
 
 
         int dim = 1;//(int) (500 / z);
 
-        Object3D plane = Primitives.getPlane(1,128);
+        Object3D plane = Primitives.getPlane(1, 128);
 
         plane.translate(x, y, z);
         plane.rotateX(30);
@@ -381,16 +382,15 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
     }
     */
 
-    public void createGround(){
+    public void createGround() {
 
         String textureID = "groundTexture";
 
         TextureManager txtManager = TextureManager.getInstance();
         Drawable groundImage = activity.getResources().getDrawable(R.drawable.office);
         Texture groundTexture = new Texture(groundImage);
-        txtManager.addTexture(textureID,groundTexture);
-        ground = Terrain.generateDynamicGround(128,128,activity.getResources(),txtManager,textureID,GROUND_ALTITUDE);
-
+        txtManager.addTexture(textureID, groundTexture);
+        ground = Terrain.generateDynamicGround(128, 128, activity.getResources(), txtManager, textureID, GROUND_ALTITUDE);
 
 
         int dim = 1;//(int) (500 / z);
@@ -405,17 +405,16 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
 
     }
 
-    public void createPrimitiveCube(String id, float x, float y, float z){
+    public void createPrimitiveCube(String id, float x, float y, float z) {
         //Log.e("object:"+id, "CREATED at:"+x+" y:"+y+" z:"+z);
         TextureManager txtManager = TextureManager.getInstance();
         Texture txt;
-        if(!txtManager.containsTexture(id)) {
+        if (!txtManager.containsTexture(id)) {
             //txtManager.removeTexture(id);
-            if(id.equals("rosina")){
-                txt = new Texture(64,64,RGBColor.RED);
-            }
-            else if(id.equals("sanpaolo")){
-                txt = new Texture(64,64,RGBColor.RED);
+            if (id.equals("rosina")) {
+                txt = new Texture(64, 64, RGBColor.RED);
+            } else if (id.equals("sanpaolo")) {
+                txt = new Texture(64, 64, RGBColor.RED);
                 txtManager.addTexture(id, txt);
                 int dim = 5;//(int) (500 / z);
 
@@ -426,11 +425,10 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
                 cube.setTexture(id);
                 cube.setName(id);
                 world.addObject(cube);
-                objectPositions.put(cube.getID(),cube.getCenter());
+                objectPositions.put(cube.getID(), cube.getCenter());
                 return;
-            }
-            else if(id.equals("asobrero")){
-                txt = new Texture(64,64,new RGBColor(255, 255, 0));
+            } else if (id.equals("asobrero")) {
+                txt = new Texture(64, 64, new RGBColor(255, 255, 0));
 
                 txtManager.addTexture(id, txt);
                 int dim = 20;//(int) (500 / z);
@@ -441,52 +439,37 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
                 cube.setTexture(id);
                 cube.setName(id);
                 world.addObject(cube);
-                objectPositions.put(cube.getID(),cube.getCenter());
+                objectPositions.put(cube.getID(), cube.getCenter());
                 return;
-            }
-            else if(id.equals("pirandello")){
-                txt = new Texture(64,64,RGBColor.WHITE);
-            }
-            else if(id.equals("pirandello10")){
-                txt = new Texture(64,64,RGBColor.GREEN);
-            }
-            else if(id.equals("traiano")){
-                txt = new Texture(64,64,RGBColor.BLACK);
-            }
-            else if(id.equals("moscovio")){
-                txt = new Texture(64,64,new RGBColor(144,132,53));
-            }
-            else if(id.equals("duomo")){
-                txt = new Texture(64,64,new RGBColor(255,153,0));
-            }
-            else if(id.equals("nikila")){
-                txt = new Texture(64,64,new RGBColor(223,115,255));
-            }
-            else if(id.equals("XAXIS")){
-                txt = new Texture(64,64,new RGBColor(0,0,255));//BLU MYSPOT
-            }
-            else if(id.equals("XAXISBACK")){
-                txt = new Texture(64,64,new RGBColor(179, 179, 255));
-            }
-            else if(id.equals("YAXIS")){
-                txt = new Texture(64,64,new RGBColor(255, 0, 0));//ROSSO MLN
-            }
-            else if(id.equals("YAXISBACK")){
-                txt = new Texture(64,64,new RGBColor(255, 179, 179));
-            }
-            else if(id.equals("ZAXIS")){
-                txt = new Texture(64,64,new RGBColor(0, 255, 0));//VERDE su
-            }
-            else if(id.equals("ZAXISBACK")){
-                txt = new Texture(64,64,new RGBColor(179, 255, 179));
-            }
-
-            else
-                txt = new Texture(64,64,RGBColor.BLACK);
+            } else if (id.equals("pirandello")) {
+                txt = new Texture(64, 64, RGBColor.WHITE);
+            } else if (id.equals("pirandello10")) {
+                txt = new Texture(64, 64, RGBColor.GREEN);
+            } else if (id.equals("traiano")) {
+                txt = new Texture(64, 64, RGBColor.BLACK);
+            } else if (id.equals("moscovio")) {
+                txt = new Texture(64, 64, new RGBColor(144, 132, 53));
+            } else if (id.equals("duomo")) {
+                txt = new Texture(64, 64, new RGBColor(255, 153, 0));
+            } else if (id.equals("nikila")) {
+                txt = new Texture(64, 64, new RGBColor(223, 115, 255));
+            } else if (id.equals("XAXIS")) {
+                txt = new Texture(64, 64, new RGBColor(0, 0, 255));//BLU MYSPOT
+            } else if (id.equals("XAXISBACK")) {
+                txt = new Texture(64, 64, new RGBColor(179, 179, 255));
+            } else if (id.equals("YAXIS")) {
+                txt = new Texture(64, 64, new RGBColor(255, 0, 0));//ROSSO MLN
+            } else if (id.equals("YAXISBACK")) {
+                txt = new Texture(64, 64, new RGBColor(255, 179, 179));
+            } else if (id.equals("ZAXIS")) {
+                txt = new Texture(64, 64, new RGBColor(0, 255, 0));//VERDE su
+            } else if (id.equals("ZAXISBACK")) {
+                txt = new Texture(64, 64, new RGBColor(179, 255, 179));
+            } else
+                txt = new Texture(64, 64, RGBColor.BLACK);
 
             txtManager.addTexture(id, txt);
-        }
-        else
+        } else
             txt = txtManager.getTexture(id);
 
         int dim = 1;//(int) (500 / z);
@@ -497,14 +480,14 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         cube.setTexture(id);
         cube.setName(id);
         world.addObject(cube);
-        objectPositions.put(cube.getID(),cube.getCenter());
+        objectPositions.put(cube.getID(), cube.getCenter());
         //worldObjects.put(id, new TranslationObject(id, cube, x,y,z));
 
 
     }
 
-    private void addObject3DToWorld(Object3D object3D,float x, float y, float z){
-        Log.e("object:"+object3D.getName(), "CREATED at:"+x+" y:"+y+" z:"+z);
+    private void addObject3DToWorld(Object3D object3D, float x, float y, float z) {
+        Log.e("object:" + object3D.getName(), "CREATED at:" + x + " y:" + y + " z:" + z);
 
 
         object3D.setTexture(object3D.getName());
@@ -518,12 +501,12 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         //object3D.build();
         //cube.setName(id);
         world.addObject(object3D);
-        objectPositions.put(object3D.getID(),object3D.getCenter());
+        objectPositions.put(object3D.getID(), object3D.getCenter());
         //worldObjects.put(id, new TranslationObject(id, cube, x,y,z));
 
     }
 
-    public void createObject3DFromLocation(Object3D obj3d, Location target){
+    public void createObject3DFromLocation(Object3D obj3d, Location target) {
         //world.removeAllObjects();
 
         /*
@@ -532,78 +515,77 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         zeroLoc.setLongitude(7.6655203);
         zeroLoc.setAltitude(245);
         */
-        if(target==null){
+        if (target == null) {
             SimpleVector camPos = world.getCamera().getPosition();
-            Log.e(TAG,"creating object3d at camPos.x-1 camPos.y+1  camPos.z");
-            addObject3DToWorld(obj3d, camPos.x-1, camPos.y-1, camPos.z);
+            Log.e(TAG, "creating object3d at camPos.x-1 camPos.y+1  camPos.z");
+            addObject3DToWorld(obj3d, camPos.x - 1, camPos.y - 1, camPos.z);
             return;
         }
 
         String targetID = obj3d.getName();
 
         int attempt = 10;
-        while(zeroLoc==null && attempt>0) {
+        while (zeroLoc == null && attempt > 0) {
             //zeroLoc = gpsLocator.getLocation();
-            zeroLoc=locationFusion.getAsynchBestLocationAmongLocators();
+            zeroLoc = locationFusion.getAsynchBestLocationAmongLocators();
             attempt--;
         }
 
-        if(zeroLoc!=null) {
+        if (zeroLoc != null) {
             Double zeroDeltaLat = zeroLoc.getLatitude()/*-0.002*/;
             Double zeroDeltaLng = zeroLoc.getLongitude()/*-0.002*/;
             zeroLoc.setLatitude(zeroDeltaLat);
             zeroLoc.setLongitude(zeroDeltaLng);
 
-                //p stands for ro
-                float p = zeroLoc.distanceTo(target);
+            //p stands for ro
+            float p = zeroLoc.distanceTo(target);
 
 
-                float bearing = zeroLoc.bearingTo(target);
-                //Log.e("manageObjectsCreation2", "bearing:"+bearing+" id:"+targetID);
-                float theta = X_TO_NORTH_ANGLE - bearing;// - bearingAngleOfView;
-                //Log.e("bearing", theta+" "+targetID);
-                //Log.e("manageObjectsCreation2", "thetadeg:"+theta+" id:"+targetID);
-                Double thetaD = toRad((double) theta);
-                //Log.e("manageObjectsCreation2", "thetarad:"+thetaD+" id:"+targetID);
-                Double z = target.getAltitude() - zeroLoc.getAltitude();
-                // z == p * Math.cos(phiD);
-                // cosPhi = z/p
-                //Log.e("handleCamPosSpherical", "z/p="+z.floatValue()+"/"+p);
-                Double cosPhi;
-                if(p>1)
-                    cosPhi = z/p;
-                else {
-                    addObject3DToWorld(obj3d, 0, 0, 0);
-                    return;
-                }
-                //Log.e("handleCamPosSpherical", "cosPhi="+cosPhi);
-                //Double phiD = toRad((double) phi);
-                Double phiD = Math.acos(cosPhi);
+            float bearing = zeroLoc.bearingTo(target);
+            //Log.e("manageObjectsCreation2", "bearing:"+bearing+" id:"+targetID);
+            float theta = X_TO_NORTH_ANGLE - bearing;// - bearingAngleOfView;
+            //Log.e("bearing", theta+" "+targetID);
+            //Log.e("manageObjectsCreation2", "thetadeg:"+theta+" id:"+targetID);
+            Double thetaD = toRad((double) theta);
+            //Log.e("manageObjectsCreation2", "thetarad:"+thetaD+" id:"+targetID);
+            Double z = target.getAltitude() - zeroLoc.getAltitude();
+            // z == p * Math.cos(phiD);
+            // cosPhi = z/p
+            //Log.e("handleCamPosSpherical", "z/p="+z.floatValue()+"/"+p);
+            Double cosPhi;
+            if (p > 1)
+                cosPhi = z / p;
+            else {
+                addObject3DToWorld(obj3d, 0, 0, 0);
+                return;
+            }
+            //Log.e("handleCamPosSpherical", "cosPhi="+cosPhi);
+            //Double phiD = toRad((double) phi);
+            Double phiD = Math.acos(cosPhi);
 
-                //double r = p * Math.sin(phiD);
-                //Log.e("isFacedown", facedown + "");
+            //double r = p * Math.sin(phiD);
+            //Log.e("isFacedown", facedown + "");
 
-                //the code would be this...
-                Double x = p * Math.sin(phiD) * Math.cos(thetaD);
-                Double y = p * Math.sin(phiD) * Math.sin(thetaD);
+            //the code would be this...
+            Double x = p * Math.sin(phiD) * Math.cos(thetaD);
+            Double y = p * Math.sin(phiD) * Math.sin(thetaD);
 
-                //Log.e("manageObjectsCreation2", "x:"+x+" y:"+y+" z:"+z);
+            //Log.e("manageObjectsCreation2", "x:"+x+" y:"+y+" z:"+z);
 
-                addObject3DToWorld(obj3d, x.floatValue(), y.floatValue(), z.floatValue());
+            addObject3DToWorld(obj3d, x.floatValue(), y.floatValue(), z.floatValue());
 
-        }
-        else{
+        } else {
             Log.e("JPCTWorldManager", "manageObjectsPositionUpdate: null location");
         }
 
     }
 
     //http://stackoverflow.com/questions/15298130/load-3d-models-with-jpct-ae
-    public class TexturedObject{
+    public class TexturedObject {
 
         public String id;
         public int textureId;
-        public float x,y,z;
+        public float x, y, z;
         public int dimension;
         public float scale;
         public Texture texture;
@@ -618,24 +600,22 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
                               float x,
                               float y,
                               float z,
-                              int dim){
-            this.id=id;
+                              int dim) {
+            this.id = id;
             this.textureId = textureId;
             //this.texturePath=texturePath; //path = assets/
-            this.scale=scale;
-            this.x=x;
-            this.y=y;
-            this.z=z;
-            dimension=dim;
+            this.scale = scale;
+            this.x = x;
+            this.y = y;
+            this.z = z;
+            dimension = dim;
             obj3D = load3DSObject(id, textureId, scale);
         }
 
 
-
         //http://www.jpct.net/forum2/index.php/topic,2168.15.html?PHPSESSID=2963dbbdcd6472ebe013778ea71482ec
         ////txtrName for example for a named bman.3ds, it would be just bman
-        private Object3D load3DSObject(String txtrName, int textureID/*p.e R.drawable.bigoffice*/, float thingScale /*= 1*/)
-        {
+        private Object3D load3DSObject(String txtrName, int textureID/*p.e R.drawable.bigoffice*/, float thingScale /*= 1*/) {
 
             //TextureManager.getInstance().addTexture(txtrName + ".jpg", new Texture("res/" + txtrName + ".jpg"));
             // Create a texture out of the icon...:-)
@@ -655,7 +635,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
 
 
             try {
-                String fname = /*"assets/" + */txtrName+".3ds";
+                String fname = /*"assets/" + */txtrName + ".3ds";
                 //Log.e(TAG, "model file name:"+fname);
                 Object3D objT = loadModel(fname, thingScale);
                 //Primitives.getCube(10);
@@ -687,10 +667,9 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
                 e.printStackTrace();
             }
             Object3D[] model;
-            if(filename.endsWith(".3ds")){
+            if (filename.endsWith(".3ds")) {
                 model = Loader.load3DS(stream, scale);
-            }
-            else
+            } else
                 return null;
 
             Object3D o3d = new Object3D(0);
@@ -698,7 +677,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
             for (int i = 0; i < model.length; i++) {
                 temp = model[i];
                 temp.setCenter(SimpleVector.ORIGIN);
-                temp.rotateX((float)( -.5*Math.PI));
+                temp.rotateX((float) (-.5 * Math.PI));
                 temp.rotateMesh();
                 temp.setRotationMatrix(new Matrix());
                 o3d = Object3D.mergeObjects(o3d, temp);
@@ -708,17 +687,16 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         }
     }
 
-    public void manageObjectCreationFromModel(TexturedObject tObj){
+    public void manageObjectCreationFromModel(TexturedObject tObj) {
         //Log.e("object:"+tObj.id, "CREATED at:"+tObj.x+" y:"+tObj.y+" z:"+tObj.z);
         TextureManager txtManager = TextureManager.getInstance();
         Texture txt;
-        if(!txtManager.containsTexture(tObj.id)) {
+        if (!txtManager.containsTexture(tObj.id)) {
 
             txt = tObj.texture;
 
 
-        }
-        else
+        } else
             txt = txtManager.getTexture(tObj.id);
 
 
@@ -730,7 +708,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         obj3D.setTexture(tObj.id);
         obj3D.setName(tObj.id);
         world.addObject(obj3D);
-        objectPositions.put(obj3D.getID(),obj3D.getCenter());
+        objectPositions.put(obj3D.getID(), obj3D.getCenter());
 
     }
 
@@ -742,8 +720,10 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
 
         setUpWorld();
 
-        manageObjectsCreation();
+        manageSimulationObjectsCreation();
 
+
+        manageCubesCreation();
         /*
         TexturedObject tObj = new TexturedObject("chair",//id
                 R.drawable.chair,//p.e R.drawable.bigoffice//textureID
@@ -790,7 +770,6 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
     }
 
 
-
     @Override
     public void onDrawFrame(GL10 gl) {
 
@@ -809,23 +788,23 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         handleCameraPositionSpherical();
         handleCameraRotations();
 
-        Pair<Object3D,Location> p = objectsToBeCreated.poll();
-        if(p!=null) {
+        Pair<Object3D, Location> p = objectsToBeCreated.poll();
+        if (p != null) {
 
             createObject3DFromLocation(p.first, p.second);
         }
         //createCubesOnTheJPCTAxis();
 
-        Pair<Integer,Boolean> viewObj = visibleSettings.poll();
-        if(viewObj!=null){
+        Pair<Integer, Boolean> viewObj = visibleSettings.poll();
+        if (viewObj != null) {
             Object3D o3 = world.getObject(viewObj.first);
-            if(o3!=null)o3.setVisibility(viewObj.second);
+            if (o3 != null) o3.setVisibility(viewObj.second);
         }
 
         world.renderScene(frameBuffer);
-         //the scene is drawn on the frame buffer.
-        if(skybox!=null)
-            skybox.render(world,frameBuffer);
+        //the scene is drawn on the frame buffer.
+        if (skybox != null)
+            skybox.render(world, frameBuffer);
 
         world.draw(frameBuffer);//also world.drawWireframe can be used to just draw the borders
 
@@ -834,9 +813,8 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
     }
 
 
-
     // transform gps-points to the correspending screen-points on the android device
-    public void createCubesOnTheJPCTAxis(){
+    public void createCubesOnTheJPCTAxis() {
 
         world.removeAllObjects();
         final Double DISTANCE = 25.0;
@@ -847,22 +825,21 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         Double zx = 0.0;
 
         createPrimitiveCube("XAXIS", xx.floatValue(), yx.floatValue(), zx.floatValue());
-        createPrimitiveCube("XAXISBACK", - xx.floatValue(), yx.floatValue(), zx.floatValue());
+        createPrimitiveCube("XAXISBACK", -xx.floatValue(), yx.floatValue(), zx.floatValue());
 
         Double xy = 0.0;
         Double yy = DISTANCE;
         Double zy = 0.0;
 
         createPrimitiveCube("YAXIS", xy.floatValue(), yy.floatValue(), zy.floatValue());
-        createPrimitiveCube("YAXISBACK", xy.floatValue(), - yy.floatValue(), zy.floatValue());
+        createPrimitiveCube("YAXISBACK", xy.floatValue(), -yy.floatValue(), zy.floatValue());
 
         Double xz = 0.0;
         Double yz = 0.0;
         Double zz = DISTANCE;
 
         createPrimitiveCube("ZAXIS", xz.floatValue(), yz.floatValue(), zz.floatValue());
-        createPrimitiveCube("ZAXISBACK", xz.floatValue(), yz.floatValue(), - zz.floatValue());
-
+        createPrimitiveCube("ZAXISBACK", xz.floatValue(), yz.floatValue(), -zz.floatValue());
 
 
     }
@@ -872,10 +849,24 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
     }
 
 
-    //http://tutorial.math.lamar.edu/Classes/CalcIII/SphericalCoords.aspx
-    public void manageObjectsCreation(){
+    public void manageSimulationObjectsCreation() {
 
         world.removeAllObjects();
+
+        for (String targetID : simulation.getTargetObjects().keySet()) {
+            SimParameters.SimObject simObj = simulation.getTargetObjects().get(targetID);
+            ModelObject3D mo3d = new ModelObject3D(activity,simObj.modelName,simObj.textureId,simObj.scale,0,0,0,simObj.dim);
+            createObject3DFromLocation(mo3d.obj3D, simObj.loc);
+
+        }
+
+
+    }
+
+    //http://tutorial.math.lamar.edu/Classes/CalcIII/SphericalCoords.aspx
+    public void manageCubesCreation() {
+
+        //world.removeAllObjects();
 
         /*
         zeroLoc=new Location("asobrero");
@@ -885,15 +876,14 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         */
 
         int attempt = 10;
-        while(zeroLoc==null && attempt>0) {
+        while (zeroLoc == null && attempt > 0) {
             //zeroLoc = gpsLocator.getLocation();
-            zeroLoc=locationFusion.getAsynchBestLocationAmongLocators();
+            zeroLoc = locationFusion.getAsynchBestLocationAmongLocators();
             attempt--;
         }
 
 
-
-        if(zeroLoc!=null) {
+        if (zeroLoc != null) {
             Double zeroDeltaLat = zeroLoc.getLatitude()/*-0.002*/;
             Double zeroDeltaLng = zeroLoc.getLongitude()/*-0.002*/;
             zeroLoc.setLatitude(zeroDeltaLat);
@@ -925,8 +915,8 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
                 // cosPhi = z/p
                 //Log.e("handleCamPosSpherical", "z/p="+z.floatValue()+"/"+p);
                 Double cosPhi;
-                if(p>1)
-                    cosPhi = z/p;
+                if (p > 1)
+                    cosPhi = z / p;
                 else {
                     createPrimitiveCube(targetID, 0, 0, 0);
                     continue;
@@ -946,8 +936,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
 
                 createPrimitiveCube(targetID, x.floatValue(), y.floatValue(), z.floatValue());
             }
-        }
-        else{
+        } else {
             Log.e("JPCTWorldManager", "manageObjectsPositionUpdate: null location");
         }
 
@@ -1064,7 +1053,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
 
 
     //http://tutorial.math.lamar.edu/Classes/CalcIII/SphericalCoords.aspx
-    public void handleCameraPositionSpherical(){
+    public void handleCameraPositionSpherical() {
         //if(true)return;
 
         //Log.e("handleCamPosSpherical", "1");
@@ -1073,94 +1062,92 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
 
         Location currLoc = locationFusion.getBestLocationAmongLocators();
 
-        if(currLoc==null)return;
+        if (currLoc == null) return;
 
         Location newLoc = new Location(currLoc);
 
         //locationFusion.smoothAltitudeValueThroughService(newLoc);
 
 
-        if(newLoc!=null) {
-                //Log.e("handleCamPosSpherical", "2");
-                //Location target = simulation.getTargetLocations().get(targetID);
-                if(zeroLoc==null){
-                    //Log.e("handleCamPosSpherical", "zeroLOC==null");
-                    //zeroLoc=gpsLocator.requestLocationUpdate();
-                    return;
+        if (newLoc != null) {
+            //Log.e("handleCamPosSpherical", "2");
+            //Location target = simulation.getTargetLocations().get(targetID);
+            if (zeroLoc == null) {
+                //Log.e("handleCamPosSpherical", "zeroLOC==null");
+                //zeroLoc=gpsLocator.requestLocationUpdate();
+                return;
+            }
+            //p stands for ro
+            float p = zeroLoc.distanceTo(newLoc);
+            if (p < 1) return;
+            //float bearingAngleOfView = head + (-1 * pitch);
+            //float azimuth = newLoc.bearingTo(zeroLoc) - bearingAngleOfView;
+            //Log.e("bearingAngleOfView",bearingAngleOfView+"");
+
+            float bearing = zeroLoc.bearingTo(newLoc);
+            float theta = X_TO_NORTH_ANGLE - bearing;// - bearingAngleOfView;
+            //Log.e("theta", theta+"");
+            Double thetaD = toRad((double) theta);
+
+
+            Double z = newLoc.getAltitude() - zeroLoc.getAltitude();
+            // z == p * Math.cos(phiD);
+            // cosPhi = z/p
+            //Log.e("handleCamPosSpherical", "z/p="+z.floatValue()+"/"+p);
+            Double cosPhi;
+            if (p != 0)
+                cosPhi = z / p;
+            else
+                cosPhi = 0.0;
+            //Log.e("handleCamPosSpherical", "cosPhi="+cosPhi);
+            //Double phiD = toRad((double) phi);
+            Double phiD = Math.acos(cosPhi);
+
+            //double r = p * Math.sin(phiD);
+            //Log.e("isFacedown", facedown + "");
+
+
+            //the code would be this...
+            Double x = p * Math.sin(phiD) * Math.cos(thetaD);
+            Double y = p * Math.sin(phiD) * Math.sin(thetaD);
+
+            z = z + CAMERA_HEIGHT;
+            //Log.e("CAMERA POSITION", "x:"+x+" y:"+y+" z:"+z);
+
+
+            xCAMERA = x.floatValue();
+            yCAMERA = y.floatValue();
+            zCAMERA = z.floatValue();
+
+            world.getCamera().setPosition(xCAMERA, yCAMERA, zCAMERA);
+
+            TextureFromCameraActivity.MainHandler mainH = activity.getMainHandler();
+            if (mainH != null) {
+
+                //if(zeroLoc==null)
+                boolean zerolocisnull = zeroLoc == null;
+                String vcoors = "x:" + xCAMERA + "\n" +
+                        "y:" + yCAMERA + "\n" +
+                        "z:" + zCAMERA + "\n" +
+                        "accuracyRay=" + newLoc.getAccuracy() + "\n" +
+                        "zerolocisNULL=" + zerolocisnull + "\n";
+
+                vcoors = vcoors + "bearing: " + bearing + "\n";
+
+                if (!zerolocisnull) {
+                    vcoors = vcoors + "zeroloc altitude=" + zeroLoc.getAltitude() + "\n";
+                    vcoors = vcoors + "zerloc lat: " + zeroLoc.getLatitude() + "\n";
+                    vcoors = vcoors + "zerloc lng: " + zeroLoc.getLongitude() + "\n";
                 }
-                //p stands for ro
-                float p = zeroLoc.distanceTo(newLoc);
-                if(p<1)return;
-                //float bearingAngleOfView = head + (-1 * pitch);
-                //float azimuth = newLoc.bearingTo(zeroLoc) - bearingAngleOfView;
-                //Log.e("bearingAngleOfView",bearingAngleOfView+"");
 
-                float bearing = zeroLoc.bearingTo(newLoc);
-                float theta = X_TO_NORTH_ANGLE - bearing;// - bearingAngleOfView;
-                //Log.e("theta", theta+"");
-                Double thetaD = toRad((double) theta);
-
-
-                Double z = newLoc.getAltitude() - zeroLoc.getAltitude();
-                // z == p * Math.cos(phiD);
-                // cosPhi = z/p
-                //Log.e("handleCamPosSpherical", "z/p="+z.floatValue()+"/"+p);
-                Double cosPhi;
-                if(p!=0)
-                    cosPhi = z/p;
-                else
-                    cosPhi=0.0;
-                //Log.e("handleCamPosSpherical", "cosPhi="+cosPhi);
-                //Double phiD = toRad((double) phi);
-                Double phiD = Math.acos(cosPhi);
-
-                //double r = p * Math.sin(phiD);
-                //Log.e("isFacedown", facedown + "");
-
-
-                //the code would be this...
-                Double x = p * Math.sin(phiD) * Math.cos(thetaD);
-                Double y = p * Math.sin(phiD) * Math.sin(thetaD);
-
-                z=z+CAMERA_HEIGHT;
-                //Log.e("CAMERA POSITION", "x:"+x+" y:"+y+" z:"+z);
-
-
-
-                    xCAMERA = x.floatValue();
-                    yCAMERA = y.floatValue();
-                    zCAMERA = z.floatValue();
-
-                    world.getCamera().setPosition(xCAMERA, yCAMERA, zCAMERA);
-
-                    TextureFromCameraActivity.MainHandler mainH = activity.getMainHandler();
-                    if (mainH != null) {
-
-                        //if(zeroLoc==null)
-                        boolean zerolocisnull = zeroLoc==null;
-                        String vcoors = "x:"+xCAMERA+"\n"+
-                                        "y:"+yCAMERA+"\n"+
-                                        "z:"+zCAMERA+"\n"+
-                                        "accuracyRay="+newLoc.getAccuracy()+"\n"+
-                                        "zerolocisNULL="+zerolocisnull+"\n";
-
-                        vcoors=vcoors+"bearing: "+bearing+"\n";
-
-                        if(!zerolocisnull){
-                            vcoors=vcoors+"zeroloc altitude="+zeroLoc.getAltitude()+"\n";
-                            vcoors=vcoors+"zerloc lat: "+zeroLoc.getLatitude()+"\n";
-                            vcoors=vcoors+"zerloc lng: "+zeroLoc.getLongitude()+"\n";
-                        }
-
-                        mainH.sendVirtualCoordinates(vcoors);
-                    }
+                mainH.sendVirtualCoordinates(vcoors);
+            }
 
 
             //Log.e("handleCamPosSpherical", "cam pos:  "+x.floatValue()+" "+y.floatValue()+" "+z.floatValue() );
-                //createPrimitiveCube(targetID, x.floatValue(), y.floatValue(), z.floatValue());
+            //createPrimitiveCube(targetID, x.floatValue(), y.floatValue(), z.floatValue());
 
-        }
-        else{
+        } else {
             Log.e("handleCamPosSpherical", "newLoc null location");
         }
 
@@ -1303,15 +1290,11 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
     */
 
 
-
-
-
     //IPaintListener
     /*
         you have two methods that will be called before and after a frame is being drawn.
         i.e it can be used to count frames per second
     */
-
 
 
     //http://stackoverflow.com/questions/14740808/android-problems-calculating-the-orientation-of-the-device
@@ -1342,9 +1325,9 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         }
     }
     */
-    public void handleCameraRotations(){
+    public void handleCameraRotations() {
 
-        if(rotationMatrix==null)return;
+        if (rotationMatrix == null) return;
 
         //Log.e("handleCameraRotations()", "HANDLED");
         Camera cam = world.getCamera();
@@ -1371,21 +1354,17 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
     }
 
 
-
-
-
     private void copyMatrix(float[] src, com.threed.jpct.Matrix dest) {
         //per info vedi
         //https://developer.android.com/reference/android/hardware/SensorManager.html#getQuaternionFromVector(float[], float[])
         //getRotationMatrixFromVector
 
-        if(src.length==9) {
+        if (src.length == 9) {
             dest.setRow(0, src[0], src[1], src[2], 0);
             dest.setRow(1, src[3], src[4], src[5], 0);
             dest.setRow(2, src[6], src[7], src[8], 0);
             dest.setRow(3, 0f, 0f, 0f, 1f);
-        }
-        else if(src.length==16){
+        } else if (src.length == 16) {
             dest.setRow(0, src[0], src[1], src[2], 0);
             dest.setRow(1, src[3], src[4], src[5], 0);
             dest.setRow(2, src[6], src[7], src[8], 0);
@@ -1397,24 +1376,24 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
         }
     }
 
-    public void setRotationMatrix(float[] mat){
-        rotationMatrix=mat;
+    public void setRotationMatrix(float[] mat) {
+        rotationMatrix = mat;
     }
 
 
     // Convert transparentColor to be transparent in a Bitmap.
     public static Bitmap makeTransparent(Bitmap bit) {
-        int width =  bit.getWidth();
+        int width = bit.getWidth();
         int height = bit.getHeight();
         Bitmap myBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
-        int [] allpixels = new int [ myBitmap.getHeight()*myBitmap.getWidth()];
-        bit.getPixels(allpixels, 0, myBitmap.getWidth(), 0, 0, myBitmap.getWidth(),myBitmap.getHeight());
+        int[] allpixels = new int[myBitmap.getHeight() * myBitmap.getWidth()];
+        bit.getPixels(allpixels, 0, myBitmap.getWidth(), 0, 0, myBitmap.getWidth(), myBitmap.getHeight());
         myBitmap.setPixels(allpixels, 0, width, 0, 0, width, height);
 
-        for(int i =0; i<myBitmap.getHeight()*myBitmap.getWidth();i++){
+        for (int i = 0; i < myBitmap.getHeight() * myBitmap.getWidth(); i++) {
             //if( allpixels[i] == transparentColor)
 
-                allpixels[i] = Color.alpha(Color.TRANSPARENT);
+            allpixels[i] = Color.alpha(Color.TRANSPARENT);
         }
 
         myBitmap.setPixels(allpixels, 0, myBitmap.getWidth(), 0, 0, myBitmap.getWidth(), myBitmap.getHeight());
@@ -1422,9 +1401,8 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
     }
 
 
-
-    private ConcurrentLinkedQueue<Pair<Integer,Boolean>> visibleSettings = new ConcurrentLinkedQueue<Pair<Integer,Boolean>>();
-    private ConcurrentHashMap <Integer, SimpleVector> objectPositions = new ConcurrentHashMap<Integer, SimpleVector>();
+    private ConcurrentLinkedQueue<Pair<Integer, Boolean>> visibleSettings = new ConcurrentLinkedQueue<Pair<Integer, Boolean>>();
+    private ConcurrentHashMap<Integer, SimpleVector> objectPositions = new ConcurrentHashMap<Integer, SimpleVector>();
 
 
     private class LineOfSightTask extends TimerTask {
@@ -1433,20 +1411,19 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer{
 
             SimpleVector camPos = new SimpleVector(world.getCamera().getPosition());
 
-            for(Integer objID: objectPositions.keySet()){
+            for (Integer objID : objectPositions.keySet()) {
 
                 SimpleVector objPos = objectPositions.get(objID);
-                if(objPos==null)continue;
+                if (objPos == null) continue;
                 double distance = objPos.distance(camPos);
-                if(distance>LINE_OF_SIGHT){
+                if (distance > LINE_OF_SIGHT) {
                     //Log.e(TAG,objID+" visibility:false");
                     //tO.setVisibility(false);
-                    visibleSettings.add(new Pair<Integer, Boolean>(objID,false));
-                }
-                else{
+                    visibleSettings.add(new Pair<Integer, Boolean>(objID, false));
+                } else {
                     //Log.e(TAG,objID+" visibility:true");
                     //tO.setVisibility(true);
-                    visibleSettings.add(new Pair<Integer, Boolean>(objID,true));
+                    visibleSettings.add(new Pair<Integer, Boolean>(objID, true));
                 }
             }
 
