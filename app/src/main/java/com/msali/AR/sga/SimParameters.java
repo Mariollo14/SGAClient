@@ -32,19 +32,16 @@ public class SimParameters {
         public String modelName;
         public int textureId;
         public float scale;
-        public int dim;
         public Location loc;
 
         public SimObject(String modelName,
                          int textureId,///*p.e R.drawable.bigoffice*/
                          float scale,
-                         int dim,
                          Location loc) {
 
             this.modelName = modelName;
             this.textureId = textureId;
             this.scale = scale;
-            this.dim = dim;
             this.loc = loc;
 
         }
@@ -67,20 +64,37 @@ public class SimParameters {
         this.addNewTarget("nikila",41.131527,14.780288,141);
         this.addNewTarget("pirandello10",41.1292366,14.7941399, 173);
         */
+
         int altezzaGrattacielo = 247 + 166;
-        this.addNewTargetCube("sanpaolo", 45.06971, 7.662823, altezzaGrattacielo);
-        this.addNewTargetCube("tobkcf", 45.064171, 7.659963, 250);
+        //this.addNewTargetCube("sanpaolo", 45.06971, 7.662823, altezzaGrattacielo);
+        //this.addNewTargetCube("tobkcf", 45.064171, 7.659963, 250);
 
 
-        Location locObj = new Location(TAG);
-        locObj.setLatitude(45.081035);
-        locObj.setLongitude(7.665644);
-        locObj.setAltitude(245);
+
+        Location sanpaolo = new Location(TAG);
+        sanpaolo.setLatitude(45.06971);
+        sanpaolo.setLongitude(7.662823);
+        sanpaolo.setAltitude(altezzaGrattacielo);
+
+        Location sobrero = new Location(TAG);
+        sobrero.setLatitude(45.081035);
+        sobrero.setLongitude(7.665644);
+        sobrero.setAltitude(245);
+        /*
         this.addNewTargetObject("chsobrero", "chair.3ds",
                 R.drawable.chair,
                 0.025f,//scale
                 1,
                 locObj);
+        */
+        this.addNewTargetObject("kkong", "kkong.obj",
+                R.drawable.kkong,
+                2.5f,//scale
+                sanpaolo);
+
+
+
+
         //this.addNewTarget("tobkpraca",45.075859, 7.664095, 251);
         //this.addNewTarget("trueN", 89.99, 0.01, 250);
         /*
@@ -132,10 +146,9 @@ public class SimParameters {
     public void addNewTargetObject(String id, String modelName,
                                    int textureId,///*p.e R.drawable.bigoffice*/
                                    float scale,
-                                   int dim,
                                    Location loc) {
 
-        this.targetObjects.put(id, new SimObject(modelName, textureId, scale, dim, loc));
+        this.targetObjects.put(id, new SimObject(modelName, textureId, scale, loc));
 
     }
 

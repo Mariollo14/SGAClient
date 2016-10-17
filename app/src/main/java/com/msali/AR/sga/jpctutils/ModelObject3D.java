@@ -30,7 +30,7 @@ public class ModelObject3D {
     public String model_format = "";
     public int textureId;
     public float x,y,z;
-    public int dimension;
+    //public int dimension;
     public float scale;
     public Texture texture;
     public Object3D obj3D;
@@ -48,8 +48,7 @@ public class ModelObject3D {
                          float scale,
                          float x,
                          float y,
-                         float z,
-                         int dim){
+                         float z){
         this.modelFileName=modelFileName;
         //this.textureId = textureId;
         //this.texturePath=texturePath; //path = assets/
@@ -58,7 +57,6 @@ public class ModelObject3D {
         this.x=x;
         this.y=y;
         this.z=z;
-        dimension=dim;
         obj3D = loadObject(modelFile, scale);
     }
 
@@ -73,8 +71,7 @@ public class ModelObject3D {
                          float scale,
                          float x,
                          float y,
-                         float z,
-                         int dim){
+                         float z){
         this.modelFileName=modelFileName;
         this.textureId = textureId;
         //this.texturePath=texturePath; //path = assets/
@@ -83,7 +80,6 @@ public class ModelObject3D {
         this.x=x;
         this.y=y;
         this.z=z;
-        dimension=dim;
         obj3D = loadObjectAndTexture(modelFile, textureId, scale);
     }
 
@@ -167,6 +163,7 @@ public class ModelObject3D {
             Object3D objT = loadModel(basename, model_format, thingScale);
 
             Log.e(TAG, "objT==null :"+Boolean.toString(objT==null));
+
             objT.build();
             objT.setTexture(basename);
             objT.setName(basename);
@@ -202,22 +199,23 @@ public class ModelObject3D {
                 model = Loader.load3DS(stream, scale);
                 break;
             case "obj":
-                Loader.loadOBJ(stream,null,scale);
+                model = Loader.loadOBJ(stream,null,scale);
                 break;
             case "OBJ":
-                Loader.loadOBJ(stream,null,scale);
+                model = Loader.loadOBJ(stream,null,scale);
                 break;
             case "md2":
-                Loader.loadMD2(stream,scale);
+                //to be checked
+                model[0] = Loader.loadMD2(stream,scale);
                 break;
             case "MD2":
-                Loader.loadMD2(stream,scale);
+                model[0] = Loader.loadMD2(stream,scale);
                 break;
             case "asc":
-                Loader.loadASC(stream,scale,false);
+                model[0] = Loader.loadASC(stream,scale,false);
                 break;
             case "ASC":
-                Loader.loadASC(stream,scale,false);
+                model[0] = Loader.loadASC(stream,scale,false);
                 break;
             default:
                     /*

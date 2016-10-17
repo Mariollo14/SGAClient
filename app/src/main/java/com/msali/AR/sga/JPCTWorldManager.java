@@ -405,7 +405,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer {
 
     }
 
-    public void createPrimitiveCube(String id, float x, float y, float z) {
+    public void createPrimitiveCube(String id, float x, float y, float z, int dim) {
         //Log.e("object:"+id, "CREATED at:"+x+" y:"+y+" z:"+z);
         TextureManager txtManager = TextureManager.getInstance();
         Texture txt;
@@ -416,7 +416,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer {
             } else if (id.equals("sanpaolo")) {
                 txt = new Texture(64, 64, RGBColor.RED);
                 txtManager.addTexture(id, txt);
-                int dim = 5;//(int) (500 / z);
+                //int dim = 5;//(int) (500 / z);
 
                 Object3D cube = Primitives.getCube(dim);
 
@@ -431,7 +431,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer {
                 txt = new Texture(64, 64, new RGBColor(255, 255, 0));
 
                 txtManager.addTexture(id, txt);
-                int dim = 20;//(int) (500 / z);
+                //int dim = 20;//(int) (500 / z);
 
                 Object3D cube = Primitives.getCube(dim);
 
@@ -472,7 +472,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer {
         } else
             txt = txtManager.getTexture(id);
 
-        int dim = 1;//(int) (500 / z);
+        //int dim = 1;//(int) (500 / z);
 
         Object3D cube = Primitives.getCube(dim);
 
@@ -824,22 +824,22 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer {
         Double yx = 0.0;
         Double zx = 0.0;
 
-        createPrimitiveCube("XAXIS", xx.floatValue(), yx.floatValue(), zx.floatValue());
-        createPrimitiveCube("XAXISBACK", -xx.floatValue(), yx.floatValue(), zx.floatValue());
+        createPrimitiveCube("XAXIS", xx.floatValue(), yx.floatValue(), zx.floatValue(),5);
+        createPrimitiveCube("XAXISBACK", -xx.floatValue(), yx.floatValue(), zx.floatValue(),5);
 
         Double xy = 0.0;
         Double yy = DISTANCE;
         Double zy = 0.0;
 
-        createPrimitiveCube("YAXIS", xy.floatValue(), yy.floatValue(), zy.floatValue());
-        createPrimitiveCube("YAXISBACK", xy.floatValue(), -yy.floatValue(), zy.floatValue());
+        createPrimitiveCube("YAXIS", xy.floatValue(), yy.floatValue(), zy.floatValue(),5);
+        createPrimitiveCube("YAXISBACK", xy.floatValue(), -yy.floatValue(), zy.floatValue(),5);
 
         Double xz = 0.0;
         Double yz = 0.0;
         Double zz = DISTANCE;
 
-        createPrimitiveCube("ZAXIS", xz.floatValue(), yz.floatValue(), zz.floatValue());
-        createPrimitiveCube("ZAXISBACK", xz.floatValue(), yz.floatValue(), -zz.floatValue());
+        createPrimitiveCube("ZAXIS", xz.floatValue(), yz.floatValue(), zz.floatValue(),5);
+        createPrimitiveCube("ZAXISBACK", xz.floatValue(), yz.floatValue(), -zz.floatValue(),5);
 
 
     }
@@ -855,7 +855,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer {
 
         for (String targetID : simulation.getTargetObjects().keySet()) {
             SimParameters.SimObject simObj = simulation.getTargetObjects().get(targetID);
-            ModelObject3D mo3d = new ModelObject3D(activity,simObj.modelName,simObj.textureId,simObj.scale,0,0,0,simObj.dim);
+            ModelObject3D mo3d = new ModelObject3D(activity,simObj.modelName,simObj.textureId,simObj.scale,0,0,0);
             createObject3DFromLocation(mo3d.obj3D, simObj.loc);
 
         }
@@ -918,7 +918,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer {
                 if (p > 1)
                     cosPhi = z / p;
                 else {
-                    createPrimitiveCube(targetID, 0, 0, 0);
+                    createPrimitiveCube(targetID, 0, 0, 0,5);
                     continue;
                 }
                 //Log.e("handleCamPosSpherical", "cosPhi="+cosPhi);
@@ -934,7 +934,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer {
 
                 //Log.e("manageObjectsCreation2", "x:"+x+" y:"+y+" z:"+z);
 
-                createPrimitiveCube(targetID, x.floatValue(), y.floatValue(), z.floatValue());
+                createPrimitiveCube(targetID, x.floatValue(), y.floatValue(), z.floatValue(),5);
             }
         } else {
             Log.e("JPCTWorldManager", "manageObjectsPositionUpdate: null location");

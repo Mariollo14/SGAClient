@@ -77,6 +77,7 @@ public class KalmanLatLongFilter implements LocationFilter{
                 // TO DO: USE VELOCITY INFORMATION HERE TO GET A BETTER ESTIMATE OF CURRENT POSITION
             }
 
+
             // Kalman gain matrix K = Covarariance * Inverse(Covariance + MeasurementVariance)
             // NB: because K is dimensionless, it doesn't matter that variance has different units to lat and lng
             float K = variance / (variance + accuracy * accuracy);
@@ -109,15 +110,15 @@ public class KalmanLatLongFilter implements LocationFilter{
             return;
         }
 
-        Process(loc.getLatitude(),loc.getLongitude(),loc.getAccuracy(),System.currentTimeMillis());
+        Process(loc.getLatitude(),loc.getLongitude(),loc.getAccuracy(),loc.getTime()/*System.currentTimeMillis()*/);
 
         //Log.e(TAG, "pre  k: lt:"+loc.getLatitude()+ " lg:"+loc.getLongitude());
 
 
 
-        loc.setLatitude(lat);
-        loc.setLongitude(lng);
-        loc.setAccuracy(get_accuracy());
+        loc.setLatitude(this.get_lat());
+        loc.setLongitude(this.get_lng());
+        loc.setAccuracy(this.get_accuracy());
 
         //Log.e(TAG, "post k: lt:"+loc.getLatitude()+ " lg:"+loc.getLongitude());
         //Log.e(TAG,"Kalman Filter applied");

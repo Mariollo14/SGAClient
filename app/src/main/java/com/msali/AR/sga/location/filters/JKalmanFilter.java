@@ -23,6 +23,7 @@ public class JKalmanFilter implements LocationFilter{
     @Override
     public void filter(Location loc) {
 
+
         if(!initialized){
             try {
                 initialize(loc);
@@ -74,6 +75,7 @@ public class JKalmanFilter implements LocationFilter{
                 {0, 1, 0, dy},
                 {0, 0, 1, 0},
                 {0, 0, 0, 1} };
+
         kalman.setTransition_matrix(new Matrix(tr));
 
         // 1s somewhere?

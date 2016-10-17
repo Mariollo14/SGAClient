@@ -32,7 +32,7 @@ public class LocationFusionStrategy {
 
         this.activity=activity;
 
-        filters.add(new JKalmanFilter());
+        //to be fixed filters.add(new JKalmanFilter());
         //filters.add(new KalmanLatLongFilter());
         //filters.add(new WeightedMovingAverageFilter());
 
