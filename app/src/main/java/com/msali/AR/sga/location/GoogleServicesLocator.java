@@ -214,6 +214,7 @@ public class GoogleServicesLocator implements GoogleApiClient.ConnectionCallback
     }
 
     protected void stopLocationUpdates() {
+        if(isConnected())
         LocationServices.FusedLocationApi.removeLocationUpdates(
                 mGoogleApiClient, this);
         mRequestingLocationUpdates=false;

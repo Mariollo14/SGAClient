@@ -19,6 +19,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.android.sga.R;
+import com.msali.AR.sga.SimParameters;
 import com.msali.AR.sga.location.LocationFusionStrategy;
 
 import java.lang.ref.WeakReference;
@@ -118,11 +119,13 @@ public class StartActivity extends AppCompatActivity {
                             @Override
                             public void onClick(View v) {
 
+                                Log.e(TAG,"Start Clicked");
                                 activity.startTV.setClickable(false);
                                 // The Very Basic
                                 new AsyncTask<Void, Void, Void>() {
                                     protected void onPreExecute() {
                                         // Pre Code
+                                        Log.e(TAG,"Start Executed");
                                     }
 
                                     protected Void doInBackground(Void... unused) {
@@ -144,6 +147,13 @@ public class StartActivity extends AppCompatActivity {
                                         if(lastKnownLocation==null)
                                             lastKnownLocation = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
 
+
+                                        if(lastKnownLocation==null){
+                                            lastKnownLocation = new Location(TAG);
+                                            lastKnownLocation.setLatitude(SimParameters.LAT_ORIGIN);
+                                            lastKnownLocation.setLongitude(SimParameters.LON_ORIGIN);
+                                            lastKnownLocation.setAltitude(SimParameters.ALT_ORIGIN);
+                                        }
                                         //LocationFusionStrategy.getAltitudeThroughService(lastKnownLocation.getLongitude(),lastKnownLocation.getLatitude());
                                         LocationFusionStrategy.getAltitudeFromGoogleMaps(lastKnownLocation.getLongitude(),lastKnownLocation.getLatitude());
                                         return null;

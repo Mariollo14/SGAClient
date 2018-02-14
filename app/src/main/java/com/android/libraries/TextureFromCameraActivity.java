@@ -9,6 +9,7 @@ import android.graphics.ImageFormat;
 import android.graphics.PixelFormat;
 import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
+import android.location.Location;
 import android.net.wifi.WifiManager;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
@@ -70,6 +71,7 @@ import javax.microedition.khronos.egl.EGL10;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.egl.EGLDisplay;
 
+import com.msali.AR.sga.location.StaticPositionLocator;
 import com.msali.AR.sga.sensors.SensorHandler;
 import com.msali.AR.sga.videostream.utils.MediaBlock;
 
@@ -116,9 +118,9 @@ public class TextureFromCameraActivity extends Activity
     private static final int DEFAULT_ROTATE_PERCENT = 0;    // 0-100
 
     // Requested values; actual may differ.
-    private static final int REQ_CAMERA_WIDTH = 640;//1280;
-    private static final int REQ_CAMERA_HEIGHT = 480;//720;
-    private static final int REQ_CAMERA_FPS = 30;//20;
+    private static int REQ_CAMERA_WIDTH = 640;//1280;
+    private static int REQ_CAMERA_HEIGHT = 480;//720;
+    private static int REQ_CAMERA_FPS = 30;//20;
 
 
     // The holder for our SurfaceView.  The Surface can outlive the Activity (e.g. when
@@ -170,13 +172,13 @@ public class TextureFromCameraActivity extends Activity
 
     //EYE
     //private final int ServerPort = 8080;
-    private final int StreamingPort = 8088;
-    private final int PictureWidth = 640;//480;
-    private final int PictureHeight = 480;//360;
-    private static final int MediaBlockNumber = 6;
-    private static final int MediaBlockSize = 131072;//1024 * 512;//
+    private int StreamingPort = 8088;
+    private int PictureWidth = 640;//480;
+    private int PictureHeight = 480;//360;
+    private static int MediaBlockNumber = 6;
+    private static int MediaBlockSize = 131072;//1024 * 512;//
     private final int EstimatedFrameNumber = 1;//30;
-    private final int StreamingInterval = 10;//100;
+    //private final int StreamingInterval = 10;//100;
     // EYE
     private StreamingServer streamingServer = null;
     //ExecutorService executor = Executors.newFixedThreadPool(3);
@@ -184,9 +186,9 @@ public class TextureFromCameraActivity extends Activity
     private ReentrantLock previewLock = new ReentrantLock();
     boolean inProcessing = false;
     byte[] yuvFrame = new byte[1920 * 1280 * 2];
-    private static MediaBlock[] mediaBlocks = new MediaBlock[MediaBlockNumber];
-    int mediaWriteIndex = 0;
-    int mediaReadIndex = 0;
+    private static MediaBlock[] mediaBlocks;// = new MediaBlock[MediaBlockNumber];
+    //int mediaWriteIndex = 0;
+    //int mediaReadIndex = 0;
     private Handler streamingHandler;
     private StreamingThread streamingThread;
 
@@ -197,23 +199,43 @@ public class TextureFromCameraActivity extends Activity
     private Camera.Size procSize_;
 
 
+    private void readConfigFile(){
+        REQ_CAMERA_HEIGHT = getResources().getInteger(R.integer.req_cam_height);
+        REQ_CAMERA_WIDTH = getResources().getInteger(R.integer.req_cam_width);
+        REQ_CAMERA_FPS = getResources().getInteger(R.integer.req_cam_fps);
+        PictureWidth = REQ_CAMERA_WIDTH;
+        PictureHeight = REQ_CAMERA_HEIGHT;
+        MediaBlockSize = getResources().getInteger(R.integer.media_block_size);
+        MediaBlockNumber = getResources().getInteger(R.integer.media_block_number);
+        mediaBlocks = new MediaBlock[MediaBlockNumber];
+        StreamingPort = getResources().getInteger(R.integer.streaming_port);
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
+        readConfigFile();
 
         simulation = new SimParameters();
         GPSLocator gpsLocator = new GPSLocator(this, simulation);
         GoogleServicesLocator googleLocator = new GoogleServicesLocator(this,false);
+        Location dsob = new Location(TAG);
+        dsob.setLatitude(45.063698476106296);
+        dsob.setLongitude(7.661643885076046);
+        dsob.setAltitude(248);
+        StaticPositionLocator sloc = new StaticPositionLocator(dsob);
         //KalmanLocator kalmanLocator = new KalmanLocator(this.getApplicationContext(),this);
 
         //ArrayList<GeoLocator> locators = new ArrayList<GeoLocator>();
         //locators.add(gpsLocator);
         //locators.add(googleLocator);
         //locators.add(kalmanLocator);
+
         locationFusion = new LocationFusionStrategy(this);
+        locationFusion.setAltitudeSmoothServiceEnabled(true);
         locationFusion.addGeoLocator(gpsLocator,false);
         locationFusion.addGeoLocator(googleLocator,false);
-
+        //locationFusion.addGeoLocator(sloc, false);
 
         //mySensorFusion = new SensorFusion(this);
         sensorHandler = new SensorHandler(this);
@@ -674,13 +696,13 @@ public class TextureFromCameraActivity extends Activity
         AlertDialog.Builder alertDialog = new AlertDialog.Builder(this);
 
         // Setting Dialog Title
-        alertDialog.setTitle("GPS is settings");
+        alertDialog.setTitle(getString(R.string.gps_alert_title));
 
         // Setting Dialog Message
-        alertDialog.setMessage("GPS is not enabled. Do you want to go to settings menu?");
+        alertDialog.setMessage(R.string.gps_alert_dialog);
 
         // On pressing the Settings button.
-        alertDialog.setPositiveButton("Settings", new DialogInterface.OnClickListener() {
+        alertDialog.setPositiveButton(getString(R.string.gps_alert_pos_butt), new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog,int which) {
                 Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
                 startActivity(intent);
@@ -688,7 +710,7 @@ public class TextureFromCameraActivity extends Activity
         });
 
         // On pressing the cancel button
-        alertDialog.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+        alertDialog.setNegativeButton(getString(R.string.gps_alert_neg_butt), new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int which) {
                 dialog.cancel();
             }
@@ -1563,14 +1585,14 @@ public class TextureFromCameraActivity extends Activity
 
     private void buildAlertMessageNoGps() {
         final AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setMessage("Your GPS seems to be disabled, do you want to enable it?")
+        builder.setMessage(getString(R.string.nogps_alert_dialog))
                 .setCancelable(false)
-                .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                .setPositiveButton(getString(R.string.nogps_alert_pos_butt), new DialogInterface.OnClickListener() {
                     public void onClick(@SuppressWarnings("unused") final DialogInterface dialog, @SuppressWarnings("unused") final int id) {
                         startActivity(new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS));
                     }
                 })
-                .setNegativeButton("No", new DialogInterface.OnClickListener() {
+                .setNegativeButton(getString(R.string.nogps_alert_neg_butt), new DialogInterface.OnClickListener() {
                     public void onClick(final DialogInterface dialog, @SuppressWarnings("unused") final int id) {
                         dialog.cancel();
                     }
@@ -1615,6 +1637,7 @@ public class TextureFromCameraActivity extends Activity
 
         if (ipAddr == null) {
             IPview.setText(getString(R.string.msg_wifi_error));
+
         } else {
             Log.e("IPADDRESS:", getString(R.string.msg_access_local) + " ws://" + ipAddr + ":"+StreamingPort);
             IPview.setText(getString(R.string.msg_access_local) + " ws://" + ipAddr + ":"+StreamingPort);
@@ -1732,16 +1755,6 @@ public class TextureFromCameraActivity extends Activity
             } else if (targetBlock != null)
                 if (targetBlock.flag == 1) {
 
-                    //Log.e(TAG, "doStreaming: flag=1");
-
-                    // HERE IS THE PROBLEM
-                    /*
-                    long newtmill= System.currentTimeMillis();
-                    long mill = newtmill - tmill;
-                    tmill=newtmill;
-                    Log.e("Thread run interval:", ""+mill);
-                    */
-
                     streamingServer.sendMedia(targetBlock.data(), targetBlock.length());
                     targetBlock.reset();
 
@@ -1752,6 +1765,7 @@ public class TextureFromCameraActivity extends Activity
     }
 
 
+    /*
     private void doStreaming() {
 
         synchronized (TextureFromCameraActivity.this) {
@@ -1765,15 +1779,6 @@ public class TextureFromCameraActivity extends Activity
             } else if (targetBlock != null)
                 if (targetBlock.flag == 1) {
 
-                    //Log.e(TAG, "doStreaming: flag=1");
-
-                    // HERE IS THE PROBLEM
-                    /*
-                    long newtmill= System.currentTimeMillis();
-                    long mill = newtmill - tmill;
-                    tmill=newtmill;
-                    Log.e("Thread run interval:", ""+mill);
-                    */
 
                     streamingServer.sendMedia(targetBlock.data(), targetBlock.length());
                     targetBlock.reset();
@@ -1794,6 +1799,7 @@ public class TextureFromCameraActivity extends Activity
         }, StreamingInterval);
 
     }
+    */
 
     protected String wifiIpAddress(Context context) {
         WifiManager wifiManager = (WifiManager) context.getSystemService(WIFI_SERVICE);
@@ -2023,7 +2029,7 @@ public class TextureFromCameraActivity extends Activity
 
 
 
-    //EYE
+    /*
     private class VideoEncodingTask implements Runnable {
 
         private byte[] resultNal = new byte[1024 * 1024];
@@ -2092,25 +2098,11 @@ public class TextureFromCameraActivity extends Activity
 
                     if (changeBlock == true) {
                         currentBlock.flag = 1;
-                        //Log.e(TAG,"NEW BLOCK ENCODED");
-
-                        /*
-                        long newtmill= System.currentTimeMillis();
-                        long mill = newtmill - tmill;
-                        tmill=newtmill;
-                        Log.e("Thread run interval:", ""+mill);
-                        */
-
-                        //lento
-
 
                         if(streamingServer!=null && streamingServer.inStreaming==true && streamingHandler!=null) {
 
                             Message streamMex = new Message();
                             streamMex.arg1=mediaWriteIndex;
-                            //Log.e(TAG, "encoded ready to stream block:"+ mediaWriteIndex);
-
-                            //LENTO
 
                             streamingHandler.sendMessage(streamMex);
 
@@ -2129,7 +2121,7 @@ public class TextureFromCameraActivity extends Activity
             inProcessing = false;
         }
     }
-
+    */
 
 
 
@@ -2139,8 +2131,8 @@ public class TextureFromCameraActivity extends Activity
             for (int i = 1; i < MediaBlockNumber; i++) {
                 mediaBlocks[i].reset();
             }
-            mediaWriteIndex = 0;
-            mediaReadIndex = 0;
+            //mediaWriteIndex = 0;
+            //mediaReadIndex = 0;
         }
     }
 
@@ -2199,13 +2191,6 @@ public class TextureFromCameraActivity extends Activity
                 //mediaSocket.send(buf);
                 ret = true;
 
-                /*
-                long newTime = System.currentTimeMillis();
-                long intv = newTime - INTERVAL;
-                INTERVAL = newTime;
-
-                Log.e(TAG, "sending:" + length + " byte. TIMEINMILLIS:" + intv);//mediaSocket.send("camW:"+mCameraPreviewWidth+" camH:"+mCameraPreviewHeight);
-                */
             }
 
             return ret;

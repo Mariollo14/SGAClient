@@ -25,8 +25,7 @@
     <string name="start_button">START</string>
     <string name="aboutButton_text">About</string>
     <string name="about_text">\nA random assortment of graphics and media hacks.\n\n
-        [This is a perpetual work in progress.]\n\n
-        Copyright 2013-2014 Google Inc.  All rights reserved.</string>
+        </string>
     <string name="contentGenerationFailedTitle">Unable to generate content</string>
     <string name="contentGenerationFailedMsg">Failed to generate content.  Some
          features may be unavailable.\n\n%1$s</string>
@@ -167,4 +166,13 @@
     <string name="orientation_label">Orientation</string>
     <string name="virtualcoors_label">Coordinates</string>
 
+    <string name="gps_alert_title">GPS settings</string>
+    <string name="gps_alert_dialog">GPS is not enabled. Do you want to go to settings menu?</string>
+    <string name="gps_alert_pos_butt">Settings</string>
+    <string name="gps_alert_neg_butt">Cancel</string>
+
+    <!-- no gps alert dialog -->
+    <string name="nogps_alert_dialog">Your GPS seems to be disabled, do you want to enable it?</string>
+    <string name="nogps_alert_pos_butt">Yes</string>
+    <string name="nogps_alert_neg_butt">No</string>
 </resources>

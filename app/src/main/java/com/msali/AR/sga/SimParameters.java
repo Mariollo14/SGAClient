@@ -5,6 +5,7 @@ import android.location.Location;
 
 import com.android.libraries.TextureFromCameraActivity;
 import com.android.sga.R;
+//import com.android.sga.R;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -19,6 +20,11 @@ public class SimParameters {
     private String TAG = "SimParameters";
     private Map<String, Location> targetLocations = new HashMap<String, Location>();
     private Map<String, SimObject> targetObjects = new HashMap<String, SimObject>();
+
+    public static final double LAT_ORIGIN = 45.063728;
+    public static final double LON_ORIGIN = 7.661704;
+    public static final double ALT_ORIGIN = 249;
+
 
     /*
     modelName including the extension p.e. chair.3ds
@@ -77,9 +83,24 @@ public class SimParameters {
         sanpaolo.setAltitude(altezzaGrattacielo);
 
         Location sobrero = new Location(TAG);
-        sobrero.setLatitude(45.081035);
-        sobrero.setLongitude(7.665644);
-        sobrero.setAltitude(245);
+        sobrero.setLatitude(45.080377);
+        sobrero.setLongitude(7.66552);
+        sobrero.setAltitude(220);//247
+
+
+        //mixto
+        Location cla = new Location(TAG);
+        //cla.setLatitude(45.063555441/*293595*/);//save
+        //cla.setLongitude(7.662108913/*064003*/);//save
+        //cla.setAltitude(248);//save
+
+        //cla.setLatitude(45.063838195197064);//prev
+        //cla.setLongitude(7.661729045212269);//prev
+        //cla.setAltitude(242);//prev
+
+        cla.setLatitude(45.063880347669254);//prev 45.063880347669254
+        cla.setLongitude(7.661755867302418);
+        cla.setAltitude(242);
         /*
         this.addNewTargetObject("chsobrero", "chair.3ds",
                 R.drawable.chair,
@@ -87,25 +108,10 @@ public class SimParameters {
                 1,
                 locObj);
         */
-        this.addNewTargetObject("kkong", "kkong.obj",
-                R.drawable.kkong,
-                2.5f,//scale
-                sanpaolo);
-
-
-
-
-        //this.addNewTarget("tobkpraca",45.075859, 7.664095, 251);
-        //this.addNewTarget("trueN", 89.99, 0.01, 250);
-        /*
-        Location asobrero = new Location("asobrero");
-        asobrero.setLatitude(45.0808178);
-        asobrero.setLongitude(7.6655203);
-
-        Location csoregina = new Location("csoregina");
-        csoregina.setLatitude(45.082234);
-        csoregina.setLongitude(7.666427);
-        */
+        this.addNewTargetObject("trex", "trex.obj",
+                R.raw.trex,
+                1.8f,//scale
+                cla);
 
         //Location
         //distanceTo will give you the distance in meters between the two given location ej target.distanceTo(destination).
@@ -126,6 +132,19 @@ public class SimParameters {
         */
         //public float bearingTo (Location dest)
         //distanceBetween
+
+
+        //this.addNewTarget("tobkpraca",45.075859, 7.664095, 251);
+        //this.addNewTarget("trueN", 89.99, 0.01, 250);
+        /*
+        Location asobrero = new Location("asobrero");
+        asobrero.setLatitude(45.0808178);
+        asobrero.setLongitude(7.6655203);
+
+        Location csoregina = new Location("csoregina");
+        csoregina.setLatitude(45.082234);
+        csoregina.setLongitude(7.666427);
+        */
 
     }
 

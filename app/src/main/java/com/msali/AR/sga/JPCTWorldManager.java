@@ -1,43 +1,5 @@
 package com.msali.AR.sga;
 
-/*
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.Color;
-import android.graphics.drawable.BitmapDrawable;
-import android.graphics.drawable.Drawable;
-import android.hardware.SensorManager;
-import android.location.Location;
-import android.opengl.GLSurfaceView;
-import android.support.v4.content.res.ResourcesCompat;
-import android.util.Log;
-
-import com.android.com.msali.android.AR.com.msali.android.sga.jpctutils.Terrain;
-import com.android.com.msali.android.AR.com.msali.android.sga.location.LocationFusionStrategy;
-import com.threed.jpct.Camera;
-import com.threed.jpct.Config;
-import com.threed.jpct.*;
-import com.threed.jpct.FrameBuffer;
-import com.threed.jpct.Light;
-import com.threed.jpct.Object3D;
-import com.threed.jpct.Primitives;
-import com.threed.jpct.SimpleVector;
-import com.threed.jpct.Texture;
-import com.threed.jpct.TextureManager;
-import com.threed.jpct.World;
-import com.threed.jpct.util.BitmapHelper;
-import com.threed.jpct.util.SkyBox;
-
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
-import java.util.HashMap;
-
-import javax.microedition.khronos.egl.EGLConfig;
-import javax.microedition.khronos.opengles.GL10;
-*/
-
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
@@ -856,6 +818,7 @@ public class JPCTWorldManager implements GLSurfaceView.Renderer {
         for (String targetID : simulation.getTargetObjects().keySet()) {
             SimParameters.SimObject simObj = simulation.getTargetObjects().get(targetID);
             ModelObject3D mo3d = new ModelObject3D(activity,simObj.modelName,simObj.textureId,simObj.scale,0,0,0);
+            mo3d.obj3D.rotateZ(toRad((double)60).floatValue());
             createObject3DFromLocation(mo3d.obj3D, simObj.loc);
 
         }

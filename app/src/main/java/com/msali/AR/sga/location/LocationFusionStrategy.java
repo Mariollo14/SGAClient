@@ -316,6 +316,12 @@ public class LocationFusionStrategy {
 
     private void smoothAltitudeValueThroughService(final Location loc){
 
+        /*
+        if(true) {
+            loc.setAltitude(248);
+            return;
+        }
+        */
         if(!altitudeSmoothServiceEnabled)return;
 
         if(loc==null)return;
